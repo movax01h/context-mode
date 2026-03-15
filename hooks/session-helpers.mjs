@@ -15,7 +15,7 @@ import { homedir } from "node:os";
 
 /**
  * Returns the worktree suffix for session path isolation.
- * Mirrors the logic in src/git.ts — kept in sync manually since
+ * Mirrors the logic in src/server.ts — kept in sync manually since
  * hooks run as plain .mjs (no TypeScript build step).
  */
 function getWorktreeSuffix() {

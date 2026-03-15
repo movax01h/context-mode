@@ -25,8 +25,49 @@ import {
 } from "./runtime.js";
 import { classifyNonZeroExit } from "./exit-classify.js";
 import { startLifecycleGuard } from "./lifecycle.js";
-import { getWorktreeSuffix } from "./git.js";
+import { execFileSync } from "node:child_process";
 const VERSION = "1.0.22";
+
+/**
+ * Returns the worktree suffix to append to session identifiers.
+ * Returns empty string when running in the main working tree.
+ *
+ * Set CONTEXT_MODE_SESSION_SUFFIX to an explicit value to override
+ * (useful in CI environments or when git is unavailable).
+ * Set to empty string to disable isolation entirely.
+ */
+function getWorktreeSuffix(): string {
+  const envSuffix = process.env.CONTEXT_MODE_SESSION_SUFFIX;
+  if (envSuffix !== undefined) {
+    return envSuffix ? `__${envSuffix}` : "";
+  }
+
+  try {
+    const cwd = process.cwd();
+    const mainWorktree = execFileSync(
+      "git",
+      ["worktree", "list", "--porcelain"],
+      {
+        encoding: "utf-8",
+        timeout: 2000,
+        stdio: ["ignore", "pipe", "ignore"],
+      },
+    )
+      .split(/\r?\n/)
+      .find((l) => l.startsWith("worktree "))
+      ?.replace("worktree ", "")
+      ?.trim();
+
+    if (mainWorktree && cwd !== mainWorktree) {
+      const suffix = createHash("sha256").update(cwd).digest("hex").slice(0, 8);
+      return `__${suffix}`;
+    }
+  } catch {
+    // git not available or not a git repo — no suffix
+  }
+
+  return "";
+}
 
 // Prevent silent server death from unhandled async errors
 process.on("unhandledRejection", (err) => {
