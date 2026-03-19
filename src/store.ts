@@ -9,9 +9,9 @@
  */
 
 import type { Database as DatabaseInstance } from "better-sqlite3";
-import { loadDatabase, applyWALPragmas } from "./db-base.js";
+import { loadDatabase, applyWALPragmas, closeDB } from "./db-base.js";
 import type { PreparedStatement } from "./db-base.js";
-import { readFileSync, readdirSync, unlinkSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, unlinkSync, existsSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -128,6 +128,32 @@ export function cleanupStaleDBs(): number {
         }
         cleaned++;
       }
+    }
+  } catch { /* ignore readdir errors */ }
+  return cleaned;
+}
+
+/**
+ * Clean up stale per-project content store DBs older than maxAgeDays.
+ * Scans the given directory for *.db files and checks mtime.
+ */
+export function cleanupStaleContentDBs(contentDir: string, maxAgeDays: number): number {
+  let cleaned = 0;
+  try {
+    if (!existsSync(contentDir)) return 0;
+    const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+    const files = readdirSync(contentDir).filter(f => f.endsWith(".db"));
+    for (const file of files) {
+      try {
+        const filePath = join(contentDir, file);
+        const mtime = statSync(filePath).mtimeMs;
+        if (mtime < cutoff) {
+          for (const suffix of ["", "-wal", "-shm"]) {
+            try { unlinkSync(filePath + suffix); } catch { /* ignore */ }
+          }
+          cleaned++;
+        }
+      } catch { /* ignore per-file errors */ }
     }
   } catch { /* ignore readdir errors */ }
   return cleaned;
@@ -918,8 +944,40 @@ export class ContentStore {
 
   // ── Cleanup ──
 
+  /**
+   * Delete sources (and their chunks) older than maxAgeDays.
+   * Returns count of deleted sources.
+   */
+  cleanupStaleSources(maxAgeDays: number): number {
+    const deleteChunks = this.#db.prepare(
+      "DELETE FROM chunks WHERE source_id IN (SELECT id FROM sources WHERE datetime(indexed_at) < datetime('now', '-' || ? || ' days'))",
+    );
+    const deleteChunksTrigram = this.#db.prepare(
+      "DELETE FROM chunks_trigram WHERE source_id IN (SELECT id FROM sources WHERE datetime(indexed_at) < datetime('now', '-' || ? || ' days'))",
+    );
+    const deleteSources = this.#db.prepare(
+      "DELETE FROM sources WHERE datetime(indexed_at) < datetime('now', '-' || ? || ' days')",
+    );
+    const cleanup = this.#db.transaction((days: number) => {
+      deleteChunks.run(days);
+      deleteChunksTrigram.run(days);
+      return deleteSources.run(days);
+    });
+    const info = cleanup(maxAgeDays);
+    return info.changes;
+  }
+
+  /** Get DB file size in bytes. */
+  getDBSizeBytes(): number {
+    try {
+      return statSync(this.#dbPath).size;
+    } catch {
+      return 0;
+    }
+  }
+
   close(): void {
-    this.#db.close();
+    closeDB(this.#db); // WAL checkpoint before close — important for persistent DBs
   }
 
   // ── Vocabulary Extraction ──

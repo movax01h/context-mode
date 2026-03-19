@@ -3,13 +3,13 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createRequire } from "node:module";
 import { createHash } from "node:crypto";
-import { existsSync, unlinkSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, unlinkSync, readdirSync, readFileSync, rmSync, mkdirSync, statSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir, tmpdir } from "node:os";
 import { z } from "zod";
 import { PolyglotExecutor } from "./executor.js";
-import { ContentStore, cleanupStaleDBs, type SearchResult, type IndexResult } from "./store.js";
+import { ContentStore, cleanupStaleDBs, cleanupStaleContentDBs, type SearchResult, type IndexResult } from "./store.js";
 import {
   readBashPolicies,
   evaluateCommandDenyOnly,
@@ -84,8 +84,75 @@ function maybeIndexSessionEvents(store: ContentStore): void {
   } catch { /* best-effort — session continuity never blocks tools */ }
 }
 
+/**
+ * Compute a per-project persistent path for the ContentStore.
+ * Uses SHA256 of the project dir (normalized for Windows) to avoid collisions.
+ */
+function getStorePath(): string {
+  const projectDir = process.env.CLAUDE_PROJECT_DIR
+    || process.env.GEMINI_PROJECT_DIR
+    || process.env.OPENCLAW_PROJECT_DIR
+    || process.cwd();
+  const normalized = projectDir.replace(/\\/g, "/");
+  const hash = createHash("sha256").update(normalized).digest("hex").slice(0, 16);
+  const dir = join(homedir(), ".context-mode", "content");
+  mkdirSync(dir, { recursive: true });
+  return join(dir, `${hash}.db`);
+}
+
+/**
+ * Detect fresh vs --continue session.
+ * SessionStart hook writes {hash}.cleanup on "startup", deletes it on "resume".
+ * Flag exists → fresh start → delete old store. Flag missing → continue → keep store.
+ * Uses same hash as getStorePath() so they stay in sync.
+ */
+function isFreshStart(): boolean {
+  try {
+    const projectDir = process.env.CLAUDE_PROJECT_DIR
+      || process.env.GEMINI_PROJECT_DIR
+      || process.env.OPENCLAW_PROJECT_DIR
+      || process.cwd();
+    const normalized = projectDir.replace(/\\/g, "/");
+    const hash = createHash("sha256").update(normalized).digest("hex").slice(0, 16);
+    // Check all platform config dirs for cleanup flag
+    const configDirs = [".claude", ".gemini", ".cursor", ".kiro", ".config/opencode", ".openclaw"];
+    for (const configDir of configDirs) {
+      const sessionsDir = join(homedir(), configDir, "context-mode", "sessions");
+      // Check with and without worktree suffix
+      const files = existsSync(sessionsDir) ? readdirSync(sessionsDir) : [];
+      if (files.some(f => f.startsWith(hash) && f.endsWith(".cleanup"))) {
+        return true;
+      }
+    }
+    return false;
+  } catch {
+    return false; // default: persist (safer than deleting)
+  }
+}
+
 function getStore(): ContentStore {
-  if (!_store) _store = new ContentStore();
+  if (!_store) {
+    const dbPath = getStorePath();
+
+    // Fresh session: delete old store DB for clean slate
+    if (isFreshStart()) {
+      for (const suffix of ["", "-wal", "-shm"]) {
+        try { unlinkSync(dbPath + suffix); } catch { /* may not exist */ }
+      }
+    }
+
+    _store = new ContentStore(dbPath);
+
+    // One-time startup cleanup: remove stale content DBs (>14 days)
+    try {
+      const contentDir = join(homedir(), ".context-mode", "content");
+      cleanupStaleContentDBs(contentDir, 14);
+      _store.cleanupStaleSources(14);
+    } catch { /* best-effort */ }
+
+    // Also clean old PID-based DBs from migration
+    cleanupStaleDBs();
+  }
   maybeIndexSessionEvents(_store);
   return _store;
 }
@@ -1798,7 +1865,7 @@ async function main() {
   // Clean up own DB + backgrounded processes on shutdown
   const shutdown = () => {
     executor.cleanupBackgrounded();
-    if (_store) _store.cleanup();
+    if (_store) _store.close(); // persist DB for --continue sessions
   };
   const gracefulShutdown = async () => {
     shutdown();

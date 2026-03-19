@@ -7,7 +7,7 @@
 
 import { describe, test, expect } from "vitest";
 import { strict as assert } from "node:assert";
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -1150,5 +1150,67 @@ describe("Source metadata (TTL cache)", () => {
     const meta2 = store.getSourceMeta("evolving-doc");
     expect(meta2!.chunkCount).toBeGreaterThanOrEqual(meta1!.chunkCount);
     store.close();
+  });
+});
+
+// ── Persistent content store lifecycle ────────────────────────────────
+
+describe("Persistent content store lifecycle", () => {
+  test("cleanupStaleSources keeps recent sources and returns 0", () => {
+    const store = createStore();
+    store.index({ content: "# Fresh doc\nContent", source: "fresh-source" });
+    const deleted = store.cleanupStaleSources(30);
+    expect(typeof deleted).toBe("number");
+    expect(deleted).toBe(0);
+    const meta = store.getSourceMeta("fresh-source");
+    expect(meta).not.toBeNull();
+    expect(meta!.label).toBe("fresh-source");
+    store.close();
+  });
+
+  test("cleanupStaleSources returns number type", () => {
+    const store = createStore();
+    store.index({ content: "# Test\nContent", source: "test-source" });
+    const deleted = store.cleanupStaleSources(365);
+    expect(typeof deleted).toBe("number");
+    store.close();
+  });
+
+  test("getDBSizeBytes returns positive number after indexing", () => {
+    const store = createStore();
+    store.index({ content: "# Test\nSome content for size", source: "size-test" });
+    const size = store.getDBSizeBytes();
+    expect(size).toBeGreaterThan(0);
+    store.close();
+  });
+
+  test("store data persists after close and reopen at same path", () => {
+    const dbPath = join(tmpdir(), `persist-test-${Date.now()}.db`);
+    const store1 = new ContentStore(dbPath);
+    store1.index({ content: "# Persistent\nThis should survive", source: "persist-doc" });
+    store1.close();
+
+    const store2 = new ContentStore(dbPath);
+    const meta = store2.getSourceMeta("persist-doc");
+    expect(meta).not.toBeNull();
+    expect(meta!.label).toBe("persist-doc");
+    expect(meta!.chunkCount).toBeGreaterThan(0);
+    store2.cleanup();
+  });
+
+  test("deleting DB file before creating store gives fresh state", () => {
+    const dbPath = join(tmpdir(), `fresh-test-${Date.now()}.db`);
+    const store1 = new ContentStore(dbPath);
+    store1.index({ content: "# Old\nOld content", source: "old-doc" });
+    store1.close();
+
+    for (const suffix of ["", "-wal", "-shm"]) {
+      try { unlinkSync(dbPath + suffix); } catch { /* ignore */ }
+    }
+
+    const store2 = new ContentStore(dbPath);
+    const meta = store2.getSourceMeta("old-doc");
+    expect(meta).toBeNull();
+    store2.cleanup();
   });
 });
