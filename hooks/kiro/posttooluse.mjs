@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import "../reexec-node.mjs";
 import "../suppress-stderr.mjs";
 import "../ensure-deps.mjs";
 /**

@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import "../reexec-node.mjs";
 import "../suppress-stderr.mjs";
 /**
  * Kiro CLI PreToolUse hook for context-mode.

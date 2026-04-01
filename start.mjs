@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import "./hooks/reexec-node.mjs";
 import { execSync } from "node:child_process";
 import { existsSync, chmodSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
