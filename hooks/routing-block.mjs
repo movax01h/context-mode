@@ -70,6 +70,8 @@ export function createRoutingBlock(t) {
 
     When the user says "ctx upgrade", "ctx-upgrade", "/ctx-upgrade", or asks to update context-mode:
     → Call the upgrade MCP tool, execute the returned shell command, display results as a checklist.
+
+    After /clear: call ${t("ctx_stats")}(reset: true) to reset session stats and search index.
   </ctx_commands>
 </context_window_protection>`;
 }
