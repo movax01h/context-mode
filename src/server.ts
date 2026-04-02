@@ -144,12 +144,46 @@ const sessionStats = {
   sessionStart: Date.now(),
 };
 
+/**
+ * Reset session stats to zero. Called when /clear flag is detected.
+ * The SessionStart hook writes a .clear-stats flag file on /clear,
+ * and the server checks for it before each tool call.
+ */
+function resetSessionStats(): void {
+  sessionStats.calls = {};
+  sessionStats.bytesReturned = {};
+  sessionStats.bytesIndexed = 0;
+  sessionStats.bytesSandboxed = 0;
+  sessionStats.cacheHits = 0;
+  sessionStats.cacheBytesSaved = 0;
+  sessionStats.sessionStart = Date.now();
+
+  // Also reset FTS5 content store — drop and recreate on next getStore() call
+  if (_store) {
+    try { _store.cleanup(); } catch { /* best effort */ }
+    _store = null;
+  }
+}
+
+/** Check for .clear-stats flag and reset stats if found. */
+function checkClearStatsFlag(): void {
+  const sessDir = join(homedir(), ".claude", "context-mode", "sessions");
+  try {
+    const flags = readdirSync(sessDir).filter((f) => f.endsWith(".clear-stats"));
+    for (const f of flags) {
+      unlinkSync(join(sessDir, f));
+    }
+    if (flags.length > 0) resetSessionStats();
+  } catch { /* best effort */ }
+}
+
 type ToolResult = {
   content: Array<{ type: "text"; text: string }>;
   isError?: boolean;
 };
 
 function trackResponse(toolName: string, response: ToolResult): ToolResult {
+  checkClearStatsFlag();
   const bytes = response.content.reduce(
     (sum, c) => sum + Buffer.byteLength(c.text),
     0,
@@ -1577,9 +1611,20 @@ server.registerTool(
       "Returns context consumption statistics for the current session. " +
       "Shows total bytes returned to context, breakdown by tool, call counts, " +
       "estimated token usage, and context savings ratio.",
-    inputSchema: z.object({}),
+    inputSchema: z.object({
+      reset: z.boolean().optional().describe("Reset all stats and FTS5 store to zero. Use after /clear."),
+    }),
   },
-  async () => {
+  async ({ reset }) => {
+    // Check for clear flag BEFORE reading stats
+    checkClearStatsFlag();
+
+    if (reset) {
+      resetSessionStats();
+      return trackResponse("ctx_stats", {
+        content: [{ type: "text" as const, text: "Session stats and search index reset." }],
+      });
+    }
     const totalBytesReturned = Object.values(sessionStats.bytesReturned).reduce(
       (sum, b) => sum + b,
       0,

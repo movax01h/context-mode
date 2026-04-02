@@ -1083,3 +1083,35 @@ describe("ctx_upgrade tool: inline fallback for missing CLI", () => {
     expect(serverSrc).toMatch(/existsSync\(fallbackPath\)/);
   });
 });
+
+// ─── Clear stats on /clear ───────────────────────────────────────────────────
+
+describe("Session stats reset on /clear", () => {
+  const serverSrc = readFileSync(
+    resolve(__dirname, "../../src/server.ts"),
+    "utf-8",
+  );
+
+  test("server.ts has resetSessionStats function", () => {
+    expect(serverSrc).toContain("function resetSessionStats");
+  });
+
+  test("ctx_stats accepts reset parameter", () => {
+    expect(serverSrc).toContain("reset: z.boolean()");
+    expect(serverSrc).toContain("if (reset)");
+  });
+
+  test("resetSessionStats also resets FTS5 content store", () => {
+    expect(serverSrc).toContain("_store.cleanup()");
+    expect(serverSrc).toContain("_store = null");
+  });
+
+  test("routing block instructs reset after /clear", () => {
+    const routingBlockSrc = readFileSync(
+      resolve(__dirname, "../../hooks/routing-block.mjs"),
+      "utf-8",
+    );
+    expect(routingBlockSrc).toContain("After /clear");
+    expect(routingBlockSrc).toContain("reset: true");
+  });
+});
