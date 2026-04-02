@@ -8,9 +8,9 @@ context-mode supports eight platforms across three hook paradigms:
 
 | Paradigm | Platforms |
 |----------|-----------|
-| **JSON stdin/stdout** | Claude Code, Gemini CLI, VS Code Copilot, Cursor |
+| **JSON stdin/stdout** | Claude Code, Gemini CLI, VS Code Copilot, Cursor, Codex CLI |
 | **TS Plugin** | OpenCode |
-| **MCP-only** | Codex CLI, Antigravity, Kiro |
+| **MCP-only** | Antigravity, Kiro |
 
 The MCP server layer is 100% portable and needs no adapter. Only the hook layer requires platform-specific adapters.
 
@@ -34,21 +34,22 @@ This puts the `context-mode` binary in PATH, which is required for:
 
 | Feature | Claude Code | Gemini CLI | VS Code Copilot | Cursor | OpenCode | Codex CLI | Antigravity | Kiro |
 |---------|-------------|------------|-----------------|--------|----------|-----------|-------------|------|
-| **Paradigm** | json-stdio | json-stdio | json-stdio | json-stdio | ts-plugin | mcp-only | mcp-only | mcp-only |
-| **PreToolUse equivalent** | `PreToolUse` | `BeforeTool` | `PreToolUse` | `preToolUse` | `tool.execute.before` | -- | -- | -- |
-| **PostToolUse equivalent** | `PostToolUse` | `AfterTool` | `PostToolUse` | `postToolUse` | `tool.execute.after` | -- | -- | -- |
+| **Paradigm** | json-stdio | json-stdio | json-stdio | json-stdio | ts-plugin | json-stdio | mcp-only | mcp-only |
+| **PreToolUse equivalent** | `PreToolUse` | `BeforeTool` | `PreToolUse` | `preToolUse` | `tool.execute.before` | `PreToolUse` | -- | -- |
+| **PostToolUse equivalent** | `PostToolUse` | `AfterTool` | `PostToolUse` | `postToolUse` | `tool.execute.after` | `PostToolUse` | -- | -- |
 | **PreCompact equivalent** | `PreCompact` | `PreCompress` | `PreCompact` | -- | `experimental.session.compacting` | -- | -- | -- |
-| **SessionStart** | `SessionStart` | `SessionStart` | `SessionStart` | -- (buggy in Cursor) | -- | -- | -- | -- |
-| **Can modify args** | Yes | Yes | Yes | Yes | Yes | -- | -- | -- |
-| **Can modify output** | Yes | Yes | Yes | No | Yes (caveat) | -- | -- | -- |
-| **Can inject session context** | Yes | Yes | Yes | Yes | -- | -- | -- | -- |
-| **Can block tools** | Yes | Yes | Yes | Yes | Yes (throw) | -- | -- | -- |
-| **Config location** | `~/.claude/settings.json` | `~/.gemini/settings.json` | `.github/hooks/*.json` | `.cursor/hooks.json` or `~/.cursor/hooks.json` | `opencode.json` | `~/.codex/config.toml` | `~/.gemini/antigravity/mcp_config.json` | `~/.kiro/settings/mcp.json` |
+| **SessionStart** | `SessionStart` | `SessionStart` | `SessionStart` | -- (buggy in Cursor) | -- | `SessionStart` | -- | -- |
+| **Stop equivalent** | -- | -- | `Stop` | `stop` | -- | `Stop` | -- | -- |
+| **Can modify args** | Yes | Yes | Yes | Yes | Yes | No | -- | -- |
+| **Can modify output** | Yes | Yes | Yes | No | Yes (caveat) | No | -- | -- |
+| **Can inject session context** | Yes | Yes | Yes | Yes | -- | Yes | -- | -- |
+| **Can block tools** | Yes | Yes | Yes | Yes | Yes (throw) | Yes | -- | -- |
+| **Config location** | `~/.claude/settings.json` | `~/.gemini/settings.json` | `.github/hooks/*.json` | `.cursor/hooks.json` or `~/.cursor/hooks.json` | `opencode.json` | `~/.codex/hooks.json` + `~/.codex/config.toml` | `~/.gemini/antigravity/mcp_config.json` | `~/.kiro/settings/mcp.json` |
 | **Session ID field** | `session_id` | `session_id` | `sessionId` (camelCase) | `conversation_id` | `sessionID` (camelCase) | N/A | N/A | N/A |
 | **Project dir env** | `CLAUDE_PROJECT_DIR` | `GEMINI_PROJECT_DIR` | `CLAUDE_PROJECT_DIR` | stdin `workspace_roots` | `ctx.directory` (plugin init) | N/A | N/A | N/A |
 | **MCP tool naming** | `mcp__server__tool` | `mcp__server__tool` | `f1e_` prefix | `MCP:<tool>` in hook payloads | `mcp__server__tool` | `mcp__server__tool` | `mcp__server__tool` | `mcp__server__tool` |
-| **Hook command format** | `context-mode hook claude-code <event>` | `context-mode hook gemini-cli <event>` | `context-mode hook vscode-copilot <event>` | `context-mode hook cursor <event>` | TS plugin (no command) | N/A | N/A | N/A |
-| **Hook registration** | settings.json hooks object | settings.json hooks object | `.github/hooks/*.json` | `hooks.json` native hook arrays | opencode.json plugin array | N/A | N/A | N/A |
+| **Hook command format** | `context-mode hook claude-code <event>` | `context-mode hook gemini-cli <event>` | `context-mode hook vscode-copilot <event>` | `context-mode hook cursor <event>` | TS plugin (no command) | `context-mode hook codex <event>` | N/A | N/A |
+| **Hook registration** | settings.json hooks object | settings.json hooks object | `.github/hooks/*.json` | `hooks.json` native hook arrays | opencode.json plugin array | `~/.codex/hooks.json` | N/A | N/A |
 | **MCP server command** | `context-mode` (or plugin auto) | `context-mode` | `context-mode` | `context-mode` | `context-mode` | `context-mode` | `context-mode` | `context-mode` |
 | **Plugin distribution** | Claude plugin registry | npm global | npm global | npm global | npm global | npm global | npm global | npm global |
 | **Session dir** | `~/.claude/context-mode/sessions/` | `~/.gemini/context-mode/sessions/` | `.github/context-mode/sessions/` or `~/.vscode/context-mode/sessions/` | `~/.cursor/context-mode/sessions/` | `~/.config/opencode/context-mode/sessions/` | `~/.codex/context-mode/sessions/` | `~/.gemini/context-mode/sessions/` | `~/.kiro/context-mode/sessions/` |
@@ -179,30 +180,39 @@ OpenCode uses a TypeScript plugin paradigm instead of JSON stdin/stdout. Hooks a
 
 ### Codex CLI
 
-**Status:** MCP-only (no hooks)
+**Status:** Supported (hooks + MCP)
 
-**Hook Paradigm:** MCP-only
+**Hook Paradigm:** JSON stdin/stdout
 
-Codex CLI does not support hooks. PRs #2904 and #9796 were closed without merge. The only integration path is via MCP servers configured in `config.toml`.
+Codex CLI's Rust backend (codex-rs) includes a full hook system with 5 events, using the same JSON stdin/stdout wire protocol as Claude Code. Hooks are configured via `hooks.json`.
+
+**Hook Names:**
+- `PreToolUse` -- fires before a tool is executed
+- `PostToolUse` -- fires after a tool completes
+- `SessionStart` -- fires when a session starts, resumes, or clears
+- `UserPromptSubmit` -- fires when user submits a prompt
+- `Stop` -- fires when agent turn ends (can continue with followup)
+
+**Blocking:** `permissionDecision: "deny"` in hookSpecificOutput, or exit code 2
+**Arg Modification:** NOT supported (updatedInput returns error)
+**Output Modification:** NOT supported (updatedMCPToolOutput returns error)
+**Context Injection:** `additionalContext` in hookSpecificOutput (PostToolUse, SessionStart)
 
 **Configuration:**
-- `~/.codex/config.toml` (TOML format, not JSON)
-- MCP servers configured in `[mcp_servers]` section
+- Hook config: `~/.codex/hooks.json` (JSON format, same structure as Claude Code)
+- MCP config: `~/.codex/config.toml` (TOML format, `[mcp_servers]` section)
 
-**Capabilities:**
-- PreToolUse: --
-- PostToolUse: --
-- PreCompact: --
-- SessionStart: --
-- Can modify args: --
-- Can modify output: --
-- Can inject session context: --
+**Hook Commands:**
+```
+context-mode hook codex pretooluse
+context-mode hook codex posttooluse
+context-mode hook codex sessionstart
+```
 
 **Known Issues / Caveats:**
-- Only `"hook": notify` config for `agent-turn-complete` exists (very limited)
-- No plugin system or marketplace
-- TOML configuration requires manual editing
-- All hook-related parse/format methods throw errors
+- `tool_name` is always "Bash" (Codex only has one tool type)
+- updatedInput and updatedMCPToolOutput are in the schema but NOT implemented
+- Default hook timeout: 600 seconds
 
 ---
 
@@ -364,6 +374,8 @@ Cursor uses native lower-camel hook names and flat hook entries in `.cursor/hook
 **Hook Names:**
 - `preToolUse` -- fires before a tool is executed
 - `postToolUse` -- fires after a tool completes
+- `stop` -- fires when agent turn ends (can send followup_message to continue loop)
+- `afterAgentResponse` -- fires after assistant response (fire-and-forget, receives full response text)
 - `sessionStart` -- documented but currently rejected by Cursor's validator ([forum report](https://forum.cursor.com/t/unknown-hook-type-sessionstart/149566))
 
 **Blocking:** `{ "permission": "deny", "user_message": "..." }`
@@ -393,11 +405,13 @@ Cursor uses native lower-camel hook names and flat hook entries in `.cursor/hook
 ```
 context-mode hook cursor pretooluse
 context-mode hook cursor posttooluse
-context-mode hook cursor sessionstart
+context-mode hook cursor stop
 ```
 
 **Known Issues / Caveats:**
 - `preCompact` is intentionally not shipped in v1
+- `stop` hook receives: `conversation_id`, `status`, `loop_count`, `transcript_path`; returns `followup_message` to continue
+- `afterAgentResponse` is fire-and-forget (receives `text`, no return value expected)
 - Hook payloads name MCP tools as `MCP:<tool>` and need adapter normalization
 - Claude-compatible Cursor behavior exists, but native Cursor config is the supported path
 
@@ -407,14 +421,15 @@ context-mode hook cursor sessionstart
 
 | Capability | Claude Code | Gemini CLI | VS Code Copilot | Cursor | OpenCode | Codex CLI | Antigravity | Kiro |
 |-----------|:-----------:|:----------:|:---------------:|:------:|:--------:|:---------:|:-----------:|:----:|
-| PreToolUse | Yes | Yes | Yes | Yes | Yes | -- | -- | -- |
-| PostToolUse | Yes | Yes | Yes | Yes | Yes | -- | -- | -- |
+| PreToolUse | Yes | Yes | Yes | Yes | Yes | Yes | -- | -- |
+| PostToolUse | Yes | Yes | Yes | Yes | Yes | Yes | -- | -- |
 | PreCompact | Yes | Yes | Yes | -- | Yes* | -- | -- | -- |
-| SessionStart | Yes | Yes | Yes | Yes | -- | -- | -- | -- |
+| SessionStart | Yes | Yes | Yes | Yes | -- | Yes | -- | -- |
+| Stop | -- | -- | Yes | Yes | -- | Yes | -- | -- |
 | Modify Args | Yes | Yes | Yes | Yes | Yes | -- | -- | -- |
 | Modify Output | Yes | Yes | Yes | No | Yes** | -- | -- | -- |
-| Inject Context | Yes | Yes | Yes | Yes | -- | -- | -- | -- |
-| Block Tools | Yes | Yes | Yes | Yes | Yes | -- | -- | -- |
+| Inject Context | Yes | Yes | Yes | Yes | -- | Yes | -- | -- |
+| Block Tools | Yes | Yes | Yes | Yes | Yes | Yes | -- | -- |
 | MCP Support | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 
 \* OpenCode `experimental.session.compacting` is experimental
@@ -433,7 +448,7 @@ context-mode hook cursor sessionstart
 | VS Code Copilot | `{ "permissionDecision": "deny", "reason": "..." }` |
 | Cursor | `{ "permission": "deny", "user_message": "..." }` |
 | OpenCode | `throw new Error("...")` |
-| Codex CLI | N/A |
+| Codex CLI | `{ "hookSpecificOutput": { "permissionDecision": "deny" } }` or exit code 2 |
 
 ### Modifying Tool Input
 
@@ -444,7 +459,7 @@ context-mode hook cursor sessionstart
 | VS Code Copilot | `{ "hookSpecificOutput": { "hookEventName": "PreToolUse", "updatedInput": { ... } } }` |
 | Cursor | `{ "updated_input": { ... } }` |
 | OpenCode | `{ "args": { ... } }` (mutation) |
-| Codex CLI | N/A |
+| Codex CLI | N/A (updatedInput in schema but not implemented) |
 
 ### Injecting Additional Context (PostToolUse)
 
@@ -455,7 +470,7 @@ context-mode hook cursor sessionstart
 | VS Code Copilot | `{ "hookSpecificOutput": { "hookEventName": "PostToolUse", "additionalContext": "..." } }` |
 | Cursor | `{ "additional_context": "..." }` |
 | OpenCode | `{ "additionalContext": "..." }` |
-| Codex CLI | N/A |
+| Codex CLI | `{ "hookSpecificOutput": { "additionalContext": "..." } }` |
 
 ---
 
@@ -482,9 +497,10 @@ The dispatcher resolves the hook script relative to the installed package and dy
 | `claude-code` | `pretooluse`, `posttooluse`, `precompact`, `sessionstart`, `userpromptsubmit` |
 | `gemini-cli` | `beforetool`, `aftertool`, `precompress`, `sessionstart` |
 | `vscode-copilot` | `pretooluse`, `posttooluse`, `precompact`, `sessionstart` |
-| `cursor` | `pretooluse`, `posttooluse`, `sessionstart` |
+| `cursor` | `pretooluse`, `posttooluse`, `stop` |
+| `codex` | `pretooluse`, `posttooluse`, `sessionstart` |
 
-OpenCode uses a TS plugin paradigm (no command dispatcher). Codex CLI and Antigravity have no hook support.
+OpenCode uses a TS plugin paradigm (no command dispatcher). Antigravity and Kiro have no hook support.
 
 ---
 

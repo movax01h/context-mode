@@ -188,7 +188,7 @@ Full hook config including PreCompact: [`configs/vscode-copilot/hooks.json`](con
 </details>
 
 <details>
-<summary><strong>Cursor</strong> — hooks without SessionStart</summary>
+<summary><strong>Cursor</strong> — hooks with stop support</summary>
 
 **Prerequisites:** Node.js 18+, Cursor with agent mode.
 
@@ -228,12 +228,17 @@ Full hook config including PreCompact: [`configs/vscode-copilot/hooks.json`](con
          {
            "command": "context-mode hook cursor posttooluse"
          }
+       ],
+       "stop": [
+         {
+           "command": "context-mode hook cursor stop"
+         }
        ]
      }
    }
    ```
 
-   The `preToolUse` matcher is optional — without it, the hook fires on all tools.
+   The `preToolUse` matcher is optional — without it, the hook fires on all tools. The `stop` hook fires when the agent turn ends and can send a followup message to continue the loop. `afterAgentResponse` is also available (fire-and-forget, receives full response text).
 
 4. Copy the routing rules file. Cursor lacks a SessionStart hook, so the model needs a rules file for routing awareness:
 
@@ -246,7 +251,7 @@ Full hook config including PreCompact: [`configs/vscode-copilot/hooks.json`](con
 
 **Verify:** Open Cursor Settings > MCP and confirm "context-mode" shows as connected. In agent chat, type `ctx stats`.
 
-**Routing:** Hooks enforce routing programmatically via `preToolUse`/`postToolUse`. The `.cursor/rules/context-mode.mdc` file provides routing instructions at session start since Cursor's `sessionStart` hook is currently rejected by their validator ([forum report](https://forum.cursor.com/t/unknown-hook-type-sessionstart/149566)). Project `.cursor/hooks.json` overrides `~/.cursor/hooks.json`.
+**Routing:** Hooks enforce routing programmatically via `preToolUse`/`postToolUse`/`stop`. The `.cursor/rules/context-mode.mdc` file provides routing instructions at session start since Cursor's `sessionStart` hook is currently rejected by their validator ([forum report](https://forum.cursor.com/t/unknown-hook-type-sessionstart/149566)). Project `.cursor/hooks.json` overrides `~/.cursor/hooks.json`.
 
 Full configs: [`configs/cursor/hooks.json`](configs/cursor/hooks.json) | [`configs/cursor/mcp.json`](configs/cursor/mcp.json) | [`configs/cursor/context-mode.mdc`](configs/cursor/context-mode.mdc)
 
@@ -388,7 +393,7 @@ Full documentation: [`docs/adapters/openclaw.md`](docs/adapters/openclaw.md)
 </details>
 
 <details>
-<summary><strong>Codex CLI</strong> — MCP-only, no hooks</summary>
+<summary><strong>Codex CLI</strong> — hooks + MCP</summary>
 
 **Prerequisites:** Node.js 18+, Codex CLI installed.
 
@@ -407,7 +412,20 @@ Full documentation: [`docs/adapters/openclaw.md`](docs/adapters/openclaw.md)
    command = "context-mode"
    ```
 
-3. Copy routing instructions (Codex CLI has no hook support):
+3. *(Optional)* Add hooks for session tracking. Create `~/.codex/hooks.json`:
+
+   ```json
+   {
+     "hooks": {
+       "PostToolUse": [{ "hooks": [{ "type": "command", "command": "context-mode hook codex posttooluse" }] }],
+       "SessionStart": [{ "hooks": [{ "type": "command", "command": "context-mode hook codex sessionstart" }] }]
+     }
+   }
+   ```
+
+   Hooks enable session continuity and event tracking. Without hooks, only MCP tools are available.
+
+4. Copy routing instructions (recommended even with hooks for full routing awareness):
 
    ```bash
    cp node_modules/context-mode/configs/codex/AGENTS.md ./AGENTS.md
@@ -415,11 +433,11 @@ Full documentation: [`docs/adapters/openclaw.md`](docs/adapters/openclaw.md)
 
    For global use: `cp node_modules/context-mode/configs/codex/AGENTS.md ~/.codex/AGENTS.md`. Global applies to all projects. If both exist, Codex CLI merges them.
 
-4. Restart Codex CLI.
+5. Restart Codex CLI.
 
 **Verify:** Start a session and type `ctx stats`. Context-mode tools should appear and respond.
 
-**Routing:** Manual. The `AGENTS.md` file is the only enforcement method (~60% compliance). There is no programmatic interception — the model can run raw `curl`, read large files, or bypass sandbox tools at any time. Hook support PRs [#2904](https://github.com/openai/codex/pull/2904) and [#9796](https://github.com/openai/codex/pull/9796) were closed without merge.
+**Routing:** With hooks, SessionStart injects routing instructions and PostToolUse tracks events. Without hooks, the `AGENTS.md` file is the only enforcement method (~60% compliance). Codex CLI's hook system uses the same JSON stdin/stdout wire protocol as Claude Code but does not support arg or output modification.
 
 </details>
 
