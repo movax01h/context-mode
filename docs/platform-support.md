@@ -213,6 +213,8 @@ context-mode hook codex sessionstart
 - `tool_name` is always "Bash" (Codex only has one tool type)
 - updatedInput and updatedMCPToolOutput are in the schema but NOT implemented
 - Default hook timeout: 600 seconds
+- `codex_hooks` feature flag is disabled by default (`Stage::UnderDevelopment`). Hooks work locally but Codex CLI does not fire them unless the flag is enabled server-side by OpenAI.
+- `codex exec` mode cancels ALL MCP tool calls with "user cancelled MCP tool call" — this is a Codex-side limitation where headless mode rejects `RequestUserInput` required for MCP approval. Use interactive mode or `--dangerously-bypass-approvals-and-sandbox`.
 
 ---
 

@@ -292,9 +292,9 @@ export class CodexAdapter implements HookAdapter {
     return [
       {
         check: "Hook support",
-        status: "pass",
+        status: "warn",
         message:
-          "Codex CLI supports hooks (PreToolUse, PostToolUse, SessionStart) via JSON stdin/stdout.",
+          "Codex CLI hooks (PreToolUse, PostToolUse, SessionStart) are behind the `codex_hooks` feature flag (Stage::UnderDevelopment, default_enabled: false). Hooks work locally but may not fire in production until OpenAI enables the flag server-side.",
       },
     ];
   }

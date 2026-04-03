@@ -412,7 +412,7 @@ Full documentation: [`docs/adapters/openclaw.md`](docs/adapters/openclaw.md)
    command = "context-mode"
    ```
 
-3. Add hooks for routing enforcement and session tracking. Create `~/.codex/hooks.json`:
+3. Add hooks for routing enforcement and session tracking. **Note:** Codex CLI hooks are behind the `codex_hooks` feature flag (disabled by default as of v0.118). Hooks work locally but may not fire in production until OpenAI enables the flag. Create `~/.codex/hooks.json`:
 
    ```json
    {
