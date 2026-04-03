@@ -150,6 +150,7 @@ export class CodexAdapter implements HookAdapter {
     if (response.decision === "deny") {
       return {
         hookSpecificOutput: {
+          hookEventName: "PreToolUse",
           permissionDecision: "deny",
           permissionDecisionReason:
             response.reason ?? "Blocked by context-mode hook",
@@ -157,11 +158,9 @@ export class CodexAdapter implements HookAdapter {
       };
     }
     if (response.decision === "context" && response.additionalContext) {
-      return {
-        hookSpecificOutput: {
-          additionalContext: response.additionalContext,
-        },
-      };
+      // Codex does not support additionalContext in PreToolUse (fails open).
+      // Context injection works via PostToolUse and SessionStart instead.
+      return {};
     }
     // "allow" — return empty object for passthrough
     return {};
@@ -171,6 +170,7 @@ export class CodexAdapter implements HookAdapter {
     if (response.additionalContext) {
       return {
         hookSpecificOutput: {
+          hookEventName: "PostToolUse",
           additionalContext: response.additionalContext,
         },
       };
@@ -193,6 +193,7 @@ export class CodexAdapter implements HookAdapter {
     if (response.context) {
       return {
         hookSpecificOutput: {
+          hookEventName: "SessionStart",
           additionalContext: response.context,
         },
       };

@@ -196,7 +196,7 @@ Codex CLI's Rust backend (codex-rs) includes a full hook system with 5 events, u
 **Blocking:** `permissionDecision: "deny"` in hookSpecificOutput, or exit code 2
 **Arg Modification:** NOT supported (updatedInput returns error)
 **Output Modification:** NOT supported (updatedMCPToolOutput returns error)
-**Context Injection:** `additionalContext` in hookSpecificOutput (PostToolUse, SessionStart)
+**Context Injection:** `additionalContext` in hookSpecificOutput (PostToolUse, SessionStart only). PreToolUse does NOT support `additionalContext` — the codex formatter handles this automatically (deny works, context/modify/ask responses are dropped).
 
 **Configuration:**
 - Hook config: `~/.codex/hooks.json` (JSON format, same structure as Claude Code)
@@ -210,8 +210,9 @@ context-mode hook codex sessionstart
 ```
 
 **Known Issues / Caveats:**
-- Hook dispatch is NOT yet active in Codex CLI sessions. `codex_hooks` feature flag is `Stage::UnderDevelopment` — the flag is accepted but hooks don't fire during real sessions (verified v0.118.0 by beta tester). Our hook scripts are ready and will work once Codex enables dispatch. Track: [openai/codex#15824](https://github.com/openai/codex/issues/15824).
+- Hook dispatch is NOT yet active in Codex CLI sessions. `codex_hooks` feature flag is `Stage::UnderDevelopment` — the flag is accepted but hooks don't fire during real sessions (verified v0.118.0 by beta tester). Our hook scripts are ready and will work once Codex enables dispatch. Track: [openai/codex#16685](https://github.com/openai/codex/issues/16685).
 - **MCP exec-mode regression (v0.118.0):** All MCP tool calls are cancelled in `codex exec` with "user cancelled MCP tool call". Caused by `tool_call_mcp_elicitation` feature flag going stable — adds approval prompt that exec-mode can't handle. **Workaround: pin to Codex ≤0.116.0 for exec-mode MCP.** Confirmed by upstream maintainer @etraut-openai. Track: [openai/codex#16685](https://github.com/openai/codex/issues/16685).
+- PreToolUse `additionalContext` is unsupported — context injection works via PostToolUse and SessionStart instead. The codex formatter handles this automatically (deny works, context is dropped). Source: `codex-rs/hooks/src/engine/output_parser.rs:267`.
 - `tool_name` is always "Bash" (Codex only has one tool type)
 - updatedInput and updatedMCPToolOutput are in the schema but NOT implemented
 - Default hook timeout: 600 seconds
@@ -423,7 +424,7 @@ context-mode hook cursor stop
 
 | Capability | Claude Code | Gemini CLI | VS Code Copilot | Cursor | OpenCode | Codex CLI | Antigravity | Kiro |
 |-----------|:-----------:|:----------:|:---------------:|:------:|:--------:|:---------:|:-----------:|:----:|
-| PreToolUse | Yes | Yes | Yes | Yes | Yes | Yes | -- | -- |
+| PreToolUse | Yes | Yes | Yes | Yes | Yes | Yes*** | -- | -- |
 | PostToolUse | Yes | Yes | Yes | Yes | Yes | Yes | -- | -- |
 | PreCompact | Yes | Yes | Yes | -- | Yes* | -- | -- | -- |
 | SessionStart | Yes | Yes | Yes | Yes | -- | Yes | -- | -- |
@@ -436,6 +437,7 @@ context-mode hook cursor stop
 
 \* OpenCode `experimental.session.compacting` is experimental
 \*\* OpenCode has a TUI rendering bug for bash tool output (#13575)
+\*\*\* Codex CLI PreToolUse supports deny only (no `additionalContext`); context injection works via PostToolUse and SessionStart
 
 ---
 

@@ -435,6 +435,8 @@ Full documentation: [`docs/adapters/openclaw.md`](docs/adapters/openclaw.md)
 
    `PreToolUse` enforces sandbox routing (blocks dangerous commands, redirects to MCP tools). `PostToolUse` captures session events. `SessionStart` restores state after compaction.
 
+   > **Note:** PreToolUse routing supports deny rules only (blocks dangerous commands). Context injection (`additionalContext`) is not supported in Codex PreToolUse — it works via PostToolUse and SessionStart instead. This is handled automatically.
+
 5. Copy routing instructions (recommended even with hooks for full routing awareness):
 
    ```bash
@@ -873,7 +875,7 @@ Detailed event data is also indexed into FTS5 for on-demand retrieval via `searc
 >
 > **OpenClaw** runs context-mode as a native gateway plugin targeting Pi Agent sessions. Hooks register via `api.on()` (tool/lifecycle) and `api.registerHook()` (commands). All tool interception and compaction hooks are supported. See [`docs/adapters/openclaw.md`](docs/adapters/openclaw.md).
 >
-> **Codex CLI** hooks are implemented but dispatch is not yet active (`codex_hooks` is `Stage::UnderDevelopment`). MCP tools work. Hook scripts are ready and will activate once Codex enables dispatch ([openai/codex#16685](https://github.com/openai/codex/issues/16685)). See the Codex install section for setup. **Antigravity** and **Zed** do not support hooks. They rely solely on manually-copied routing instruction files (`AGENTS.md` / `GEMINI.md`) for enforcement (~60% compliance). See each platform's install section for copy instructions. Antigravity and Zed are auto-detected via MCP protocol handshake — no manual platform configuration needed.
+> **Codex CLI** hooks are implemented but dispatch is not yet active (`codex_hooks` is `Stage::UnderDevelopment`). MCP tools work. Hook scripts are ready and will activate once Codex enables dispatch ([openai/codex#16685](https://github.com/openai/codex/issues/16685)). PreToolUse supports `permissionDecision: "deny"` only — `additionalContext` is not supported in PreToolUse (context injection works via PostToolUse and SessionStart instead; the codex formatter handles this automatically). See the Codex install section for setup. **Antigravity** and **Zed** do not support hooks. They rely solely on manually-copied routing instruction files (`AGENTS.md` / `GEMINI.md`) for enforcement (~60% compliance). See each platform's install section for copy instructions. Antigravity and Zed are auto-detected via MCP protocol handshake — no manual platform configuration needed.
 >
 > **Kiro** supports native `preToolUse` and `postToolUse` hooks for routing enforcement and tool event capture. `agentSpawn` (SessionStart equivalent) and `stop` are not yet wired. Requires manually copying `KIRO.md` to your project root. Kiro is auto-detected via MCP protocol handshake (`clientInfo.name`).
 >

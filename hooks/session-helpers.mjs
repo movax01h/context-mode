@@ -71,6 +71,13 @@ export const CURSOR_OPTS = {
   sessionIdEnv: "CURSOR_SESSION_ID",
 };
 
+/** Codex CLI platform options. */
+export const CODEX_OPTS = {
+  configDir: ".codex",
+  projectDirEnv: undefined,   // Codex passes cwd in hook stdin, no env var
+  sessionIdEnv: undefined,    // Uses session_id from hook stdin or ppid fallback
+};
+
 /** Kiro CLI platform options. */
 export const KIRO_OPTS = {
   configDir: ".kiro",

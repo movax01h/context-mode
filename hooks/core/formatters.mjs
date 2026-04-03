@@ -69,6 +69,19 @@ export const formatters = {
     }),
   },
 
+  "codex": {
+    deny: (reason) => ({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: reason,
+      },
+    }),
+    ask: () => null, // Codex rejects permissionDecision: "ask" in PreToolUse
+    modify: () => null, // Codex rejects updatedInput in PreToolUse
+    context: () => null, // Codex rejects additionalContext in PreToolUse (fails open)
+  },
+
   "cursor": {
     deny: (reason) => ({
       permission: "deny",
