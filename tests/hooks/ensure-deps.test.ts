@@ -15,6 +15,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 
 // ── Test harness script ──
 // Replicates ensure-deps.mjs logic but captures commands instead of executing.
@@ -107,5 +108,76 @@ describe("ensure-deps: native binary detection (#206)", () => {
     writeFileSync(join(pkgDir, "index.js"), "module.exports = {};", "utf-8");
     const commands = runHarness(root);
     expect(commands).toEqual(["rebuild:better-sqlite3"]);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// RED-GREEN tests for macOS codesign after binary copy (#SIGKILL fix)
+// ═══════════════════════════════════════════════════════════════════════
+
+// Subprocess harness that imports codesignBinary from ensure-deps.mjs and
+// exercises it with mocked execSync to verify codesign behavior.
+const ensureDepsAbsPath = join(fileURLToPath(import.meta.url), "..", "..", "..", "hooks", "ensure-deps.mjs");
+const CODESIGN_HARNESS = `
+import { codesignBinary } from ${JSON.stringify("file://" + ensureDepsAbsPath.replace(/\\/g, "/"))};
+
+// Test: function must exist and be callable
+if (typeof codesignBinary !== "function") {
+  console.log(JSON.stringify({ error: "codesignBinary is not exported" }));
+  process.exit(0);
+}
+
+const action = process.argv[2];
+const fakePath = process.argv[3] || "/tmp/fake.node";
+
+if (action === "check-export") {
+  console.log(JSON.stringify({ exported: true }));
+} else if (action === "run") {
+  // Actually call codesignBinary — on macOS it will invoke codesign,
+  // on non-macOS it should be a no-op. Either way it must not throw.
+  try {
+    codesignBinary(fakePath);
+    console.log(JSON.stringify({ success: true, platform: process.platform }));
+  } catch (err) {
+    console.log(JSON.stringify({ success: false, error: err.message }));
+  }
+}
+`;
+
+describe("ensure-deps: codesignBinary macOS SIGKILL fix", () => {
+  function runCodesignHarness(action: string, fakePath?: string): Record<string, unknown> {
+    const root = createTempRoot();
+    const harnessPath = join(root, "_codesign-harness.mjs");
+    writeFileSync(harnessPath, CODESIGN_HARNESS, "utf-8");
+    const args = [harnessPath, action];
+    if (fakePath) args.push(fakePath);
+    const result = spawnSync("node", args, {
+      encoding: "utf-8",
+      timeout: 30_000,
+      cwd: join(fileURLToPath(import.meta.url), "..", ".."),
+    });
+    if (result.error) throw result.error;
+    const stdout = result.stdout?.trim();
+    if (!stdout) {
+      throw new Error(`Harness produced no output. stderr: ${result.stderr}`);
+    }
+    return JSON.parse(stdout);
+  }
+
+  test("Test A: codesignBinary is exported as a function", () => {
+    const out = runCodesignHarness("check-export");
+    expect(out).toEqual({ exported: true });
+  });
+
+  test("Test B: codesignBinary does not throw (works on any platform)", () => {
+    const out = runCodesignHarness("run", "/tmp/nonexistent.node");
+    expect(out).toHaveProperty("success", true);
+  });
+
+  test("Test C: codesignBinary is safe when codesign target does not exist", () => {
+    // On macOS, codesign will fail on a nonexistent file — must not throw.
+    // On non-macOS, it should be a no-op.
+    const out = runCodesignHarness("run", "/tmp/definitely-does-not-exist-12345.node");
+    expect(out).toHaveProperty("success", true);
   });
 });

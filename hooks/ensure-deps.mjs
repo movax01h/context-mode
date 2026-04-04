@@ -83,6 +83,7 @@ export function ensureNativeCompat(pluginRoot) {
     // Fast path: cached binary for this ABI already exists
     if (existsSync(abiCachePath)) {
       copyFileSync(abiCachePath, binaryPath);
+      codesignBinary(binaryPath);
       return;
     }
 
@@ -109,6 +110,28 @@ export function ensureNativeCompat(pluginRoot) {
     }
   } catch {
     /* best effort — caller will report the error on first DB access */
+  }
+}
+
+/**
+ * Ad-hoc codesign a native binary on macOS.
+ *
+ * When a cached .node binary is copied over the active one, macOS hardened
+ * runtime (e.g. Zed, VS Code with runtime hardening) will SIGKILL the
+ * process on the next dlopen because the code signature is invalidated.
+ * SIGKILL is uncatchable — the only fix is to re-sign after the copy.
+ *
+ * No-op on non-macOS. Swallows errors (codesign may not be available in
+ * all environments, e.g. Docker containers).
+ */
+export function codesignBinary(binaryPath) {
+  if (process.platform === "darwin") {
+    try {
+      execSync(`codesign --sign - --force "${binaryPath}"`, {
+        stdio: "pipe",
+        timeout: 10000,
+      });
+    } catch { /* codesign unavailable — continue without signing */ }
   }
 }
 
