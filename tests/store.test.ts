@@ -1513,6 +1513,77 @@ describe("FTS5 periodic optimize", () => {
   });
 });
 
+describe("Sanitize query token deduplication", () => {
+  test("sanitizeQuery removes duplicate tokens (case-insensitive)", async () => {
+    const { sanitizeQuery } = await import("../src/store.js");
+    assert.equal(
+      sanitizeQuery("error error error"),
+      '"error"',
+      "three identical tokens should compile to a single quoted term",
+    );
+    assert.equal(
+      sanitizeQuery("Error ERROR error"),
+      '"Error"',
+      "case differences should not create duplicate tokens",
+    );
+  });
+
+  test("sanitizeQuery preserves first-occurrence casing after dedup", async () => {
+    const { sanitizeQuery } = await import("../src/store.js");
+    assert.equal(sanitizeQuery("Database database DATABASE"), '"Database"');
+  });
+
+  test("sanitizeQuery preserves distinct tokens and their order", async () => {
+    const { sanitizeQuery } = await import("../src/store.js");
+    // "update" is a stopword, but the meaningful terms remain distinct.
+    assert.equal(
+      sanitizeQuery("database query database index query"),
+      '"database" "query" "index"',
+      "distinct tokens should be kept; duplicates collapsed in first-seen order",
+    );
+  });
+
+  test("sanitizeTrigramQuery removes duplicate tokens", async () => {
+    const { sanitizeTrigramQuery } = await import("../src/store.js");
+    assert.equal(
+      sanitizeTrigramQuery("error error error"),
+      '"error"',
+    );
+    assert.equal(
+      sanitizeTrigramQuery("error ERROR Error"),
+      '"error"',
+      "case-insensitive dedup across all three trigram sanitize paths",
+    );
+  });
+
+  test("dedup in OR mode collapses duplicates but preserves distinct terms", async () => {
+    const { sanitizeQuery } = await import("../src/store.js");
+    assert.equal(
+      sanitizeQuery("error error database", "OR"),
+      '"error" OR "database"',
+    );
+  });
+
+  test("search returns identical results for duplicated and deduplicated queries", () => {
+    const store = createStore();
+    store.index({
+      content:
+        "# Error Handling\n\nThe database connection threw an error during migration.\n\n# Overview\n\nPlain content.",
+      source: "dedup-behavioral",
+    });
+
+    const duplicated = store.search("error error error database database");
+    const unique = store.search("error database");
+
+    assert.equal(duplicated.length, unique.length);
+    for (let i = 0; i < duplicated.length; i++) {
+      assert.equal(duplicated[i].title, unique[i].title);
+      assert.equal(duplicated[i].content, unique[i].content);
+    }
+    store.close();
+  });
+});
+
 describe("Stopword filtering in search queries", () => {
   test("stopwords are filtered from search — meaningful terms drive ranking", () => {
     const store = createStore();
