@@ -124,13 +124,14 @@ async function waitForInsight(port: number, child: ChildProcess): Promise<void> 
   // Detect early exit so we can fail fast with a useful message
   let exited = false;
   let exitCode: number | null = null;
-  child.on("exit", (code) => { exited = true; exitCode = code; });
+  let exitSignal: string | null = null;
+  child.on("exit", (code, signal) => { exited = true; exitCode = code; exitSignal = signal; });
 
   // Poll HTTP endpoint with generous CI timeout (120 × 250ms = 30s)
   let lastError: string | undefined;
   for (let i = 0; i < 120; i++) {
     if (exited) {
-      throw new Error(`Insight server exited with code ${exitCode} before becoming ready. stderr: ${stderr || "(empty)"}`);
+      throw new Error(`Insight server exited (code=${exitCode}, signal=${exitSignal}) before becoming ready. stderr: ${stderr || "(empty)"}`);
     }
     try {
       const res = await fetch(`http://127.0.0.1:${port}/api/overview`);
@@ -173,19 +174,25 @@ function startInsight(runtime: "node" | "bun" = "node"): { port: number; child: 
 describe("Insight API same-machine cross-origin policy", () => {
   let port: number;
   let serverChild: ChildProcess;
+  let serverTempDir: string | undefined;
 
   beforeAll(async () => {
     const started = startInsight("node");
     port = started.port;
     serverChild = started.child;
-    // Remove from global children array — this describe manages its own lifecycle
-    const idx = children.indexOf(serverChild);
-    if (idx !== -1) children.splice(idx, 1);
+    // Remove from global cleanup arrays — this describe manages its own lifecycle.
+    // afterEach would otherwise kill the server or delete its temp dir between tests.
+    const childIdx = children.indexOf(serverChild);
+    if (childIdx !== -1) children.splice(childIdx, 1);
+    serverTempDir = tempDirs.pop(); // startInsight pushes tempRoot last
     await waitForInsight(port, serverChild);
   });
 
   afterAll(() => {
     try { serverChild?.kill("SIGTERM"); } catch { /* best effort */ }
+    if (serverTempDir) {
+      try { rmSync(serverTempDir, { recursive: true, force: true }); } catch { /* best effort */ }
+    }
   });
 
   test("does not advertise permissive CORS headers on sensitive session endpoints (Node)", async () => {
