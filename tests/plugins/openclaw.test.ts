@@ -19,7 +19,8 @@ import { OpenClawSessionDB } from "../../src/adapters/openclaw/session-db.js";
 import { extractWorkspace, WorkspaceRouter } from "../../src/openclaw/workspace-router.js";
 
 // MCP readiness sentinel — routing.mjs checks process.ppid in-process
-const mcpSentinel = resolve(tmpdir(), `context-mode-mcp-ready-${process.ppid}`);
+const _sentinelDir = process.platform === "win32" ? tmpdir() : "/tmp";
+const mcpSentinel = resolve(_sentinelDir, `context-mode-mcp-ready-${process.pid}`);
 beforeEach(() => { writeFileSync(mcpSentinel, String(process.pid)); });
 afterEach(() => { try { unlinkSync(mcpSentinel); } catch {} });
 

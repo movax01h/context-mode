@@ -7,7 +7,8 @@ import { routePreToolUse, resetGuidanceThrottle } from "../hooks/core/routing.mj
 const PROJECT_DIR = "/tmp/test-project";
 
 // MCP readiness sentinel — routing.mjs checks process.ppid in-process
-const mcpSentinel = resolve(tmpdir(), `context-mode-mcp-ready-${process.ppid}`);
+const _sentinelDir = process.platform === "win32" ? tmpdir() : "/tmp";
+const mcpSentinel = resolve(_sentinelDir, `context-mode-mcp-ready-${process.pid}`);
 
 describe("guidance throttle", () => {
   beforeEach(() => {

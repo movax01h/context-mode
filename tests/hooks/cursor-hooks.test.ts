@@ -59,7 +59,8 @@ describe("Cursor hooks", () => {
   });
 
   // MCP readiness sentinel — subprocess hooks check process.ppid (= this test's pid)
-  const mcpSentinel = resolve(tmpdir(), `context-mode-mcp-ready-${process.pid}`);
+  const _sentinelDir = process.platform === "win32" ? tmpdir() : "/tmp";
+  const mcpSentinel = resolve(_sentinelDir, `context-mode-mcp-ready-${process.pid}`);
   beforeEach(() => { writeFileSync(mcpSentinel, String(process.pid)); });
   afterEach(() => { try { unlinkSync(mcpSentinel); } catch {} });
 

@@ -49,11 +49,12 @@ beforeAll(async () => {
 });
 
 // MCP readiness sentinel — routing.mjs checks process.ppid in-process
-const mcpSentinel = resolve(tmpdir(), `context-mode-mcp-ready-${process.ppid}`);
+const _sentinelDir = process.platform === "win32" ? tmpdir() : "/tmp";
+const mcpSentinel = resolve(_sentinelDir, `context-mode-mcp-ready-${process.pid}`);
 
 beforeEach(() => {
   if (typeof resetGuidanceThrottle === "function") resetGuidanceThrottle();
-  writeFileSync(mcpSentinel, String(process.ppid));
+  writeFileSync(mcpSentinel, String(process.pid));
 });
 
 afterEach(() => {

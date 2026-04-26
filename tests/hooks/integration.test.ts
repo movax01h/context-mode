@@ -39,7 +39,8 @@ const _guidanceDir = resolve(tmpdir(), `context-mode-guidance-${_guidanceSuffix}
 const _sessionGuidanceDir = resolve(tmpdir(), `context-mode-guidance-s-pid-${process.pid}`);
 
 // MCP readiness sentinel — subprocess hooks check process.ppid (= this test's pid)
-const mcpSentinel = resolve(tmpdir(), `context-mode-mcp-ready-${process.pid}`);
+const _sentinelDir = process.platform === "win32" ? tmpdir() : "/tmp";
+const mcpSentinel = resolve(_sentinelDir, `context-mode-mcp-ready-${process.pid}`);
 
 beforeEach(() => {
   try { rmSync(_guidanceDir, { recursive: true, force: true }); } catch {}

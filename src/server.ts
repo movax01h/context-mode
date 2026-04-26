@@ -2380,8 +2380,11 @@ async function main() {
     console.error(`Cleaned up ${cleaned} stale DB file(s) from previous sessions`);
   }
 
-  // MCP readiness sentinel path (#230)
-  const mcpSentinel = join(tmpdir(), `context-mode-mcp-ready-${process.ppid}`);
+  // MCP readiness sentinel path (#230, #347)
+  // Uses process.pid (not ppid) — hooks use directory-scan to find any live sentinel.
+  // Hardcoded /tmp on Unix to avoid TMPDIR mismatch (#347).
+  const mcpSentinelDir = process.platform === "win32" ? tmpdir() : "/tmp";
+  const mcpSentinel = join(mcpSentinelDir, `context-mode-mcp-ready-${process.pid}`);
 
   // Clean up own DB + backgrounded processes + preload script on shutdown
   const shutdown = () => {
