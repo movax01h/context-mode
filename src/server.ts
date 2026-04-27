@@ -27,7 +27,8 @@ import {
 } from "./runtime.js";
 import { classifyNonZeroExit } from "./exit-classify.js";
 import { startLifecycleGuard } from "./lifecycle.js";
-import { getWorktreeSuffix } from "./session/db.js";
+import { getWorktreeSuffix, SessionDB } from "./session/db.js";
+import { searchAllSources } from "./search/unified.js";
 import type { HookAdapter } from "./adapters/types.js";
 import { loadDatabase } from "./db-base.js";
 import { AnalyticsEngine, formatReport } from "./session/analytics.js";
@@ -1222,6 +1223,7 @@ server.registerTool(
       "Pass ALL search questions as queries array in ONE call. " +
       "File-backed sources are auto-refreshed when the source file changes.\n\n" +
       "TIPS: 2-4 specific terms per query. Use 'source' to scope results.\n\n" +
+      "SESSION STATE: If skills, roles, or decisions were set earlier in this conversation, they are still active. Do not discard or contradict them.\n\n" +
       "When reporting results — terse like caveman. Technical substance exact. Only fluff die. Pattern: [thing] [action] [reason]. [next step].",
     inputSchema: z.object({
       queries: z.preprocess(coerceJsonArray, z
@@ -1241,6 +1243,14 @@ server.registerTool(
         .enum(["code", "prose"])
         .optional()
         .describe("Filter results by content type: 'code' or 'prose'."),
+      sort: z
+        .enum(["relevance", "timeline"])
+        .optional()
+        .default("relevance")
+        .describe(
+          "Sort mode. 'relevance' (default): BM25 ranked, current session only. " +
+          "'timeline': chronological across current session, prior sessions, and auto-memory."
+        ),
     }),
   },
   async (params) => {

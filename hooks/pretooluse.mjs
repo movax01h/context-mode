@@ -18,7 +18,8 @@ import { homedir, tmpdir } from "node:os";
 import { readStdin } from "./core/stdin.mjs";
 import { routePreToolUse, initSecurity } from "./core/routing.mjs";
 import { formatDecision } from "./core/formatters.mjs";
-import { parseStdin, getSessionId, resolveConfigDir } from "./session-helpers.mjs";
+import { parseStdin, getSessionId, getSessionDBPath, resolveConfigDir } from "./session-helpers.mjs";
+import { createSessionLoaders } from "./session-loaders.mjs";
 
 // ─── Manual recursive copy (avoids cpSync libuv crash on non-ASCII paths, Windows + Node 24) ───
 function copyDirSync(src, dest) {
@@ -168,4 +169,37 @@ const decision = routePreToolUse(tool, toolInput, process.env.CLAUDE_PROJECT_DIR
 const response = formatDecision("claude-code", decision);
 if (response !== null) {
   process.stdout.write(JSON.stringify(response) + "\n");
+}
+
+// ─── Write latency marker for cross-hook timing (Category 27) ───
+try {
+  const sessionId = getSessionId(input);
+  if (tool) {
+    const markerPath = resolve(tmpdir(), `context-mode-latency-${sessionId}-${tool}.txt`);
+    writeFileSync(markerPath, String(Date.now()), "utf-8");
+  }
+} catch { /* latency tracking is best-effort — never block hook */ }
+
+// ─── Write rejected-approach event when tool call is denied or modified ───
+if (decision && (decision.action === "deny" || decision.action === "modify")) {
+  try {
+    const { loadSessionDB } = createSessionLoaders(dirname(fileURLToPath(import.meta.url)));
+    const { SessionDB } = await loadSessionDB();
+    const dbPath = getSessionDBPath();
+    const db = new SessionDB({ dbPath });
+    const sessionId = getSessionId(input);
+    db.ensureSession(sessionId, process.env.CLAUDE_PROJECT_DIR || process.cwd());
+
+    const reason = decision.action === "deny"
+      ? decision.reason
+      : "Redirected to context-mode sandbox";
+    db.insertEvent(sessionId, {
+      type: "rejected",
+      category: "rejected-approach",
+      data: `${tool}: ${reason}`,
+      priority: 2,
+    }, "PreToolUse");
+
+    db.close();
+  } catch { /* rejected-approach tracking is best-effort — never block hook */ }
 }
