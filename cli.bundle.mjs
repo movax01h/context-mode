@@ -192,6 +192,7 @@ ${n}`}}}});var yk={};Me(yk,{BunSQLiteAdapter:()=>Bc,NodeSQLiteAdapter:()=>Vc,SQL
         chunks.title,
         chunks.content,
         chunks.content_type,
+        chunks.timestamp,
         sources.label,
         bm25(chunks, 5.0, 1.0) AS rank,
         highlight(chunks, 1, char(2), char(3)) AS highlighted
@@ -205,6 +206,7 @@ ${n}`}}}});var yk={};Me(yk,{BunSQLiteAdapter:()=>Bc,NodeSQLiteAdapter:()=>Vc,SQL
         chunks.title,
         chunks.content,
         chunks.content_type,
+        chunks.timestamp,
         sources.label,
         bm25(chunks, 5.0, 1.0) AS rank,
         highlight(chunks, 1, char(2), char(3)) AS highlighted
@@ -218,6 +220,7 @@ ${n}`}}}});var yk={};Me(yk,{BunSQLiteAdapter:()=>Bc,NodeSQLiteAdapter:()=>Vc,SQL
         chunks.title,
         chunks.content,
         chunks.content_type,
+        chunks.timestamp,
         sources.label,
         bm25(chunks, 5.0, 1.0) AS rank,
         highlight(chunks, 1, char(2), char(3)) AS highlighted
@@ -231,6 +234,7 @@ ${n}`}}}});var yk={};Me(yk,{BunSQLiteAdapter:()=>Bc,NodeSQLiteAdapter:()=>Vc,SQL
         chunks_trigram.title,
         chunks_trigram.content,
         chunks_trigram.content_type,
+        chunks_trigram.timestamp,
         sources.label,
         bm25(chunks_trigram, 5.0, 1.0) AS rank,
         highlight(chunks_trigram, 1, char(2), char(3)) AS highlighted
@@ -244,6 +248,7 @@ ${n}`}}}});var yk={};Me(yk,{BunSQLiteAdapter:()=>Bc,NodeSQLiteAdapter:()=>Vc,SQL
         chunks_trigram.title,
         chunks_trigram.content,
         chunks_trigram.content_type,
+        chunks_trigram.timestamp,
         sources.label,
         bm25(chunks_trigram, 5.0, 1.0) AS rank,
         highlight(chunks_trigram, 1, char(2), char(3)) AS highlighted
@@ -257,6 +262,7 @@ ${n}`}}}});var yk={};Me(yk,{BunSQLiteAdapter:()=>Bc,NodeSQLiteAdapter:()=>Vc,SQL
         chunks_trigram.title,
         chunks_trigram.content,
         chunks_trigram.content_type,
+        chunks_trigram.timestamp,
         sources.label,
         bm25(chunks_trigram, 5.0, 1.0) AS rank,
         highlight(chunks_trigram, 1, char(2), char(3)) AS highlighted
@@ -270,6 +276,7 @@ ${n}`}}}});var yk={};Me(yk,{BunSQLiteAdapter:()=>Bc,NodeSQLiteAdapter:()=>Vc,SQL
         chunks.title,
         chunks.content,
         chunks.content_type,
+        chunks.timestamp,
         sources.label,
         bm25(chunks, 5.0, 1.0) AS rank,
         highlight(chunks, 1, char(2), char(3)) AS highlighted
@@ -283,6 +290,7 @@ ${n}`}}}});var yk={};Me(yk,{BunSQLiteAdapter:()=>Bc,NodeSQLiteAdapter:()=>Vc,SQL
         chunks.title,
         chunks.content,
         chunks.content_type,
+        chunks.timestamp,
         sources.label,
         bm25(chunks, 5.0, 1.0) AS rank,
         highlight(chunks, 1, char(2), char(3)) AS highlighted
@@ -296,6 +304,7 @@ ${n}`}}}});var yk={};Me(yk,{BunSQLiteAdapter:()=>Bc,NodeSQLiteAdapter:()=>Vc,SQL
         chunks.title,
         chunks.content,
         chunks.content_type,
+        chunks.timestamp,
         sources.label,
         bm25(chunks, 5.0, 1.0) AS rank,
         highlight(chunks, 1, char(2), char(3)) AS highlighted
@@ -309,6 +318,7 @@ ${n}`}}}});var yk={};Me(yk,{BunSQLiteAdapter:()=>Bc,NodeSQLiteAdapter:()=>Vc,SQL
         chunks_trigram.title,
         chunks_trigram.content,
         chunks_trigram.content_type,
+        chunks_trigram.timestamp,
         sources.label,
         bm25(chunks_trigram, 5.0, 1.0) AS rank,
         highlight(chunks_trigram, 1, char(2), char(3)) AS highlighted
@@ -322,6 +332,7 @@ ${n}`}}}});var yk={};Me(yk,{BunSQLiteAdapter:()=>Bc,NodeSQLiteAdapter:()=>Vc,SQL
         chunks_trigram.title,
         chunks_trigram.content,
         chunks_trigram.content_type,
+        chunks_trigram.timestamp,
         sources.label,
         bm25(chunks_trigram, 5.0, 1.0) AS rank,
         highlight(chunks_trigram, 1, char(2), char(3)) AS highlighted
@@ -335,6 +346,7 @@ ${n}`}}}});var yk={};Me(yk,{BunSQLiteAdapter:()=>Bc,NodeSQLiteAdapter:()=>Vc,SQL
         chunks_trigram.title,
         chunks_trigram.content,
         chunks_trigram.content_type,
+        chunks_trigram.timestamp,
         sources.label,
         bm25(chunks_trigram, 5.0, 1.0) AS rank,
         highlight(chunks_trigram, 1, char(2), char(3)) AS highlighted
@@ -352,7 +364,7 @@ ${n}`}}}});var yk={};Me(yk,{BunSQLiteAdapter:()=>Bc,NodeSQLiteAdapter:()=>Vc,SQL
         (SELECT COUNT(*) FROM sources) AS sources,
         (SELECT COUNT(*) FROM chunks) AS chunks,
         (SELECT COUNT(*) FROM chunks WHERE content_type = 'code') AS codeChunks
-    `),this.#I=this.#e.prepare("DELETE FROM chunks WHERE source_id IN (SELECT id FROM sources WHERE datetime(indexed_at) < datetime('now', '-' || ? || ' days'))"),this.#A=this.#e.prepare("DELETE FROM chunks_trigram WHERE source_id IN (SELECT id FROM sources WHERE datetime(indexed_at) < datetime('now', '-' || ? || ' days'))"),this.#N=this.#e.prepare("DELETE FROM sources WHERE datetime(indexed_at) < datetime('now', '-' || ? || ' days')")}index(e){let{content:r,path:n,source:o}=e,s=typeof r=="string"&&r.length>0;if(!s&&!n)throw new Error("Either content or path must be provided");let i=s?r:xk(n,"utf-8"),a=o??n??"untitled",c=this.#B(i),u=n??void 0,l=u?vk("sha256").update(i).digest("hex"):void 0;return rn(()=>this.#l(c,a,i,u,l))}indexPlainText(e,r,n=20){if(!e||e.trim().length===0)return this.#l([],r,"");let o=this.#V(e,n);return rn(()=>this.#l(o.map(s=>({...s,hasCode:!1})),r,e))}indexJSON(e,r,n=Sk){if(!e||e.trim().length===0)return this.indexPlainText("",r);let o;try{o=JSON.parse(e)}catch{return this.indexPlainText(e,r)}let s=[];return this.#F(o,[],s,n),s.length===0?this.indexPlainText(e,r):rn(()=>this.#l(s,r,e))}#l(e,r,n,o,s){let i=e.filter(u=>u.hasCode).length,c=this.#e.transaction(()=>{if(this.#c.run(r),this.#u.run(r),this.#p.run(r),e.length===0){let d=this.#n.run(r,o??null,s??null);return Number(d.lastInsertRowid)}let u=this.#o.run(r,e.length,i,o??null,s??null),l=Number(u.lastInsertRowid);for(let d of e){let m=d.hasCode?"code":"prose";this.#i.run(d.title,d.content,l,m,null,null,null,null),this.#a.run(d.title,d.content,l,m,null,null,null,null)}return l})();return n&&this.#q(n),this.#z++,this.#z%t.OPTIMIZE_EVERY===0&&this.#L(),{sourceId:c,label:r,totalChunks:e.length,codeChunks:i}}#j(e){return e.map(r=>({title:r.title,content:r.content,source:r.label,rank:r.rank,contentType:r.content_type,highlighted:r.highlighted}))}#d(e,r){return r==="exact"?e:`%${e}%`}search(e,r=3,n,o="AND",s,i="like"){let a=kj(e,o),c,u;return n&&s?(c=i==="exact"?this.#b:this.#S,u=[a,this.#d(n,i),s,r]):n?(c=i==="exact"?this.#h:this.#f,u=[a,this.#d(n,i),r]):s?(c=this.#v,u=[a,s,r]):(c=this.#m,u=[a,r]),rn(()=>this.#j(c.all(...u)))}searchTrigram(e,r=3,n,o="AND",s,i="like"){let a=wj(e,o);if(!a)return[];let c,u;return n&&s?(c=i==="exact"?this.#$:this.#w,u=[a,this.#d(n,i),s,r]):n?(c=i==="exact"?this.#y:this.#_,u=[a,this.#d(n,i),r]):s?(c=this.#k,u=[a,s,r]):(c=this.#g,u=[a,r]),rn(()=>this.#j(c.all(...u)))}fuzzyCorrect(e){let r=e.toLowerCase().trim();if(r.length<3)return null;if(this.#r.has(r)){let u=this.#r.get(r)??null;return this.#r.delete(r),this.#r.set(r,u),u}let n=Ej(r.length),o=this.#x.all(r.length-n,r.length+n),s=null,i=n+1,a=!1;for(let{word:u}of o){if(u===r){a=!0;break}let l=$j(r,u);l<i&&(i=l,s=u)}let c=a?null:i<=n?s:null;if(this.#r.size>=t.FUZZY_CACHE_SIZE){let u=this.#r.keys().next().value;u!==void 0&&this.#r.delete(u)}return this.#r.set(r,c),c}#D(e,r,n,o,s="like"){let a=Math.max(r*2,10),c=this.search(e,a,n,"OR",o,s),u=this.searchTrigram(e,a,n,"OR",o,s),l=new Map,d=m=>`${m.source}::${m.title}`;for(let[m,f]of c.entries()){let p=d(f),h=l.get(p);h?h.score+=1/(60+m+1):l.set(p,{result:f,score:1/(60+m+1)})}for(let[m,f]of u.entries()){let p=d(f),h=l.get(p);h?h.score+=1/(60+m+1):l.set(p,{result:f,score:1/(60+m+1)})}return Array.from(l.values()).sort((m,f)=>f.score-m.score).slice(0,r).map(({result:m,score:f})=>({...m,rank:-f}))}#M(e,r){let n=r.toLowerCase().split(/\s+/).filter(i=>i.length>=2),o=n.filter(i=>!Ko.has(i)),s=o.length>0?o:n;return e.map(i=>{let a=i.title.toLowerCase(),c=s.filter(f=>a.includes(f)).length,u=i.contentType==="code"?.6:.3,l=c>0?u*(c/s.length):0,d=0,m=0;if(s.length>=2){let f=i.content.toLowerCase(),p=s.map(h=>Tj(f,h));if(!p.some(h=>h.length===0)){d=1/(1+Rj(p)/Math.max(f.length,1));let g=Pj(p,s);m=.5*Math.min(1,g/4)}}return{result:i,boost:l+d+m}}).sort((i,a)=>a.boost-i.boost||i.result.rank-a.result.rank).map(({result:i})=>i)}searchWithFallback(e,r=3,n,o,s="like"){this.#H();let i=this.#D(e,r,n,o,s);if(i.length>0)return this.#M(i,e).map(m=>({...m,matchLayer:"rrf"}));let a=e.toLowerCase().trim().split(/\s+/).filter(d=>d.length>=3&&!Ko.has(d)),c=a.join(" "),l=a.map(d=>this.fuzzyCorrect(d)??d).join(" ");if(l!==c){let d=this.#D(l,r,n,o,s);if(d.length>0)return this.#M(d,l).map(f=>({...f,matchLayer:"rrf-fuzzy"}))}return[]}lastRefreshCount=0;#H(){this.lastRefreshCount=0;let e=this.#e.prepare("SELECT label, file_path, content_hash, indexed_at FROM sources WHERE file_path IS NOT NULL").all();for(let r of e)try{if(!Ah(r.file_path))continue;let n=Kc(r.file_path).mtime,o=new Date(r.indexed_at+"Z");if(n<=o)continue;let s=xk(r.file_path,"utf-8");if(vk("sha256").update(s).digest("hex")===r.content_hash)continue;this.index({path:r.file_path,source:r.label}),this.lastRefreshCount++}catch{}}getSourceMeta(e){let r=this.#C.get(e);return r?{label:r.label,chunkCount:r.chunk_count,codeChunkCount:r.code_chunk_count,indexedAt:r.indexed_at,filePath:r.file_path??null,contentHash:r.content_hash??null}:null}listSources(){return this.#E.all()}getChunksBySource(e){return this.#T.all(e).map(n=>({title:n.title,content:n.content,source:n.label,rank:0,contentType:n.content_type}))}getDistinctiveTerms(e,r=40){let n=this.#P.get(e);if(!n||n.chunk_count<3)return[];let o=n.chunk_count,s=2,i=Math.max(3,Math.ceil(o*.4)),a=new Map;for(let l of this.#R.iterate(e)){let d=new Set(l.content.toLowerCase().split(/[^\p{L}\p{N}_-]+/u).filter(m=>m.length>=3&&!Ko.has(m)));for(let m of d)a.set(m,(a.get(m)??0)+1)}return Array.from(a.entries()).filter(([,l])=>l>=s&&l<=i).map(([l,d])=>{let m=Math.log(o/d),f=Math.min(l.length/20,.5),p=/[_]/.test(l),h=l.length>=12,g=p?1.5:h?.8:0;return{word:l,score:m+f+g}}).sort((l,d)=>d.score-l.score).slice(0,r).map(l=>l.word)}getStats(){let e=this.#O.get();return{sources:e?.sources??0,chunks:e?.chunks??0,codeChunks:e?.codeChunks??0}}cleanupStaleSources(e){return this.#e.transaction(o=>(this.#I.run(o),this.#A.run(o),this.#N.run(o)))(e).changes}getDBSizeBytes(){try{return Kc(this.#t).size}catch{return 0}}#L(){try{this.#e.exec("INSERT INTO chunks(chunks) VALUES('optimize')"),this.#e.exec("INSERT INTO chunks_trigram(chunks_trigram) VALUES('optimize')")}catch{}}close(){this.#L(),Go(this.#e)}#q(e){let r=e.toLowerCase().split(/[^\p{L}\p{N}_-]+/u).filter(s=>s.length>=3&&!Ko.has(s)),n=[...new Set(r)],o=0;this.#e.transaction(()=>{for(let s of n){let i=this.#s.run(s);o+=i.changes}})(),o>0&&this.#r.clear()}#B(e,r=Sk){let n=[],o=e.split(`
+    `),this.#I=this.#e.prepare("DELETE FROM chunks WHERE source_id IN (SELECT id FROM sources WHERE datetime(indexed_at) < datetime('now', '-' || ? || ' days'))"),this.#A=this.#e.prepare("DELETE FROM chunks_trigram WHERE source_id IN (SELECT id FROM sources WHERE datetime(indexed_at) < datetime('now', '-' || ? || ' days'))"),this.#N=this.#e.prepare("DELETE FROM sources WHERE datetime(indexed_at) < datetime('now', '-' || ? || ' days')")}index(e){let{content:r,path:n,source:o}=e,s=typeof r=="string"&&r.length>0;if(!s&&!n)throw new Error("Either content or path must be provided");let i=s?r:xk(n,"utf-8"),a=o??n??"untitled",c=this.#B(i),u=n??void 0,l=u?vk("sha256").update(i).digest("hex"):void 0;return rn(()=>this.#l(c,a,i,u,l))}indexPlainText(e,r,n=20){if(!e||e.trim().length===0)return this.#l([],r,"");let o=this.#V(e,n);return rn(()=>this.#l(o.map(s=>({...s,hasCode:!1})),r,e))}indexJSON(e,r,n=Sk){if(!e||e.trim().length===0)return this.indexPlainText("",r);let o;try{o=JSON.parse(e)}catch{return this.indexPlainText(e,r)}let s=[];return this.#F(o,[],s,n),s.length===0?this.indexPlainText(e,r):rn(()=>this.#l(s,r,e))}#l(e,r,n,o,s){let i=e.filter(u=>u.hasCode).length,c=this.#e.transaction(()=>{if(this.#c.run(r),this.#u.run(r),this.#p.run(r),e.length===0){let m=this.#n.run(r,o??null,s??null);return Number(m.lastInsertRowid)}let u=this.#o.run(r,e.length,i,o??null,s??null),l=Number(u.lastInsertRowid),d=new Date().toISOString();for(let m of e){let f=m.hasCode?"code":"prose";this.#i.run(m.title,m.content,l,f,null,null,null,d),this.#a.run(m.title,m.content,l,f,null,null,null,d)}return l})();return n&&this.#q(n),this.#z++,this.#z%t.OPTIMIZE_EVERY===0&&this.#L(),{sourceId:c,label:r,totalChunks:e.length,codeChunks:i}}#j(e){return e.map(r=>({title:r.title,content:r.content,source:r.label,rank:r.rank,contentType:r.content_type,highlighted:r.highlighted,timestamp:r.timestamp??void 0}))}#d(e,r){return r==="exact"?e:`%${e}%`}search(e,r=3,n,o="AND",s,i="like"){let a=kj(e,o),c,u;return n&&s?(c=i==="exact"?this.#b:this.#S,u=[a,this.#d(n,i),s,r]):n?(c=i==="exact"?this.#h:this.#f,u=[a,this.#d(n,i),r]):s?(c=this.#v,u=[a,s,r]):(c=this.#m,u=[a,r]),rn(()=>this.#j(c.all(...u)))}searchTrigram(e,r=3,n,o="AND",s,i="like"){let a=wj(e,o);if(!a)return[];let c,u;return n&&s?(c=i==="exact"?this.#$:this.#w,u=[a,this.#d(n,i),s,r]):n?(c=i==="exact"?this.#y:this.#_,u=[a,this.#d(n,i),r]):s?(c=this.#k,u=[a,s,r]):(c=this.#g,u=[a,r]),rn(()=>this.#j(c.all(...u)))}fuzzyCorrect(e){let r=e.toLowerCase().trim();if(r.length<3)return null;if(this.#r.has(r)){let u=this.#r.get(r)??null;return this.#r.delete(r),this.#r.set(r,u),u}let n=Ej(r.length),o=this.#x.all(r.length-n,r.length+n),s=null,i=n+1,a=!1;for(let{word:u}of o){if(u===r){a=!0;break}let l=$j(r,u);l<i&&(i=l,s=u)}let c=a?null:i<=n?s:null;if(this.#r.size>=t.FUZZY_CACHE_SIZE){let u=this.#r.keys().next().value;u!==void 0&&this.#r.delete(u)}return this.#r.set(r,c),c}#D(e,r,n,o,s="like"){let a=Math.max(r*2,10),c=this.search(e,a,n,"OR",o,s),u=this.searchTrigram(e,a,n,"OR",o,s),l=new Map,d=m=>`${m.source}::${m.title}`;for(let[m,f]of c.entries()){let p=d(f),h=l.get(p);h?h.score+=1/(60+m+1):l.set(p,{result:f,score:1/(60+m+1)})}for(let[m,f]of u.entries()){let p=d(f),h=l.get(p);h?h.score+=1/(60+m+1):l.set(p,{result:f,score:1/(60+m+1)})}return Array.from(l.values()).sort((m,f)=>f.score-m.score).slice(0,r).map(({result:m,score:f})=>({...m,rank:-f}))}#M(e,r){let n=r.toLowerCase().split(/\s+/).filter(i=>i.length>=2),o=n.filter(i=>!Ko.has(i)),s=o.length>0?o:n;return e.map(i=>{let a=i.title.toLowerCase(),c=s.filter(f=>a.includes(f)).length,u=i.contentType==="code"?.6:.3,l=c>0?u*(c/s.length):0,d=0,m=0;if(s.length>=2){let f=i.content.toLowerCase(),p=s.map(h=>Tj(f,h));if(!p.some(h=>h.length===0)){d=1/(1+Rj(p)/Math.max(f.length,1));let g=Pj(p,s);m=.5*Math.min(1,g/4)}}return{result:i,boost:l+d+m}}).sort((i,a)=>a.boost-i.boost||i.result.rank-a.result.rank).map(({result:i})=>i)}searchWithFallback(e,r=3,n,o,s="like"){this.#H();let i=this.#D(e,r,n,o,s);if(i.length>0)return this.#M(i,e).map(m=>({...m,matchLayer:"rrf"}));let a=e.toLowerCase().trim().split(/\s+/).filter(d=>d.length>=3&&!Ko.has(d)),c=a.join(" "),l=a.map(d=>this.fuzzyCorrect(d)??d).join(" ");if(l!==c){let d=this.#D(l,r,n,o,s);if(d.length>0)return this.#M(d,l).map(f=>({...f,matchLayer:"rrf-fuzzy"}))}return[]}lastRefreshCount=0;#H(){this.lastRefreshCount=0;let e=this.#e.prepare("SELECT label, file_path, content_hash, indexed_at FROM sources WHERE file_path IS NOT NULL").all();for(let r of e)try{if(!Ah(r.file_path))continue;let n=Kc(r.file_path).mtime,o=new Date(r.indexed_at+"Z");if(n<=o)continue;let s=xk(r.file_path,"utf-8");if(vk("sha256").update(s).digest("hex")===r.content_hash)continue;this.index({path:r.file_path,source:r.label}),this.lastRefreshCount++}catch{}}getSourceMeta(e){let r=this.#C.get(e);return r?{label:r.label,chunkCount:r.chunk_count,codeChunkCount:r.code_chunk_count,indexedAt:r.indexed_at,filePath:r.file_path??null,contentHash:r.content_hash??null}:null}listSources(){return this.#E.all()}getChunksBySource(e){return this.#T.all(e).map(n=>({title:n.title,content:n.content,source:n.label,rank:0,contentType:n.content_type}))}getDistinctiveTerms(e,r=40){let n=this.#P.get(e);if(!n||n.chunk_count<3)return[];let o=n.chunk_count,s=2,i=Math.max(3,Math.ceil(o*.4)),a=new Map;for(let l of this.#R.iterate(e)){let d=new Set(l.content.toLowerCase().split(/[^\p{L}\p{N}_-]+/u).filter(m=>m.length>=3&&!Ko.has(m)));for(let m of d)a.set(m,(a.get(m)??0)+1)}return Array.from(a.entries()).filter(([,l])=>l>=s&&l<=i).map(([l,d])=>{let m=Math.log(o/d),f=Math.min(l.length/20,.5),p=/[_]/.test(l),h=l.length>=12,g=p?1.5:h?.8:0;return{word:l,score:m+f+g}}).sort((l,d)=>d.score-l.score).slice(0,r).map(l=>l.word)}getStats(){let e=this.#O.get();return{sources:e?.sources??0,chunks:e?.chunks??0,codeChunks:e?.codeChunks??0}}cleanupStaleSources(e){return this.#e.transaction(o=>(this.#I.run(o),this.#A.run(o),this.#N.run(o)))(e).changes}getDBSizeBytes(){try{return Kc(this.#t).size}catch{return 0}}#L(){try{this.#e.exec("INSERT INTO chunks(chunks) VALUES('optimize')"),this.#e.exec("INSERT INTO chunks_trigram(chunks_trigram) VALUES('optimize')")}catch{}}close(){this.#L(),Go(this.#e)}#q(e){let r=e.toLowerCase().split(/[^\p{L}\p{N}_-]+/u).filter(s=>s.length>=3&&!Ko.has(s)),n=[...new Set(r)],o=0;this.#e.transaction(()=>{for(let s of n){let i=this.#s.run(s);o+=i.changes}})(),o>0&&this.#r.clear()}#B(e,r=Sk){let n=[],o=e.split(`
 `),s=[],i=[],a="",c=()=>{let l=i.join(`
 `).trim();if(l.length===0)return;let d=this.#J(s,a),m=i.some(_=>/^`{3,}/.test(_));if(Buffer.byteLength(l)<=r){n.push({title:d,content:l,hasCode:m}),i=[];return}let f=l.split(/\n\n+/),p=[],h=1,g=()=>{if(p.length===0)return;let _=p.join(`
 
@@ -454,7 +466,7 @@ ${o}`}}var Nk=v(()=>{"use strict"});import{execFileSync as Lj}from"node:child_pr
 `,_),k=l.indexOf(`
 
 `,y);x>=0&&(_=x+2),k>=0&&(y=k);let E=l.slice(_,y).trim();o.push({title:`[auto-memory] ${u.label}`,content:E,source:u.label,origin:"auto-memory",timestamp:Lk(u.path).mtime.toISOString()});break}}}catch(l){Fk&&process.stderr.write(`[ctx] auto-memory file read failed: ${l}
-`)}}return o.slice(0,e)}var Fk,Zk=v(()=>{"use strict";Fk=process.env.DEBUG?.includes("context-mode")});function Hk(t){let{query:e,limit:r,store:n,sort:o="relevance",source:s,contentType:i,sessionDB:a,projectDir:c,configDir:u}=t,l=[],d=new Date().toISOString();try{let m=n.searchWithFallback(e,r,s,i);l.push(...m.map(f=>({title:f.title,content:f.content,source:f.source,origin:"current-session",timestamp:d,rank:f.rank,matchLayer:f.matchLayer,highlighted:f.highlighted,contentType:f.contentType})))}catch(m){qh&&process.stderr.write(`[ctx] ContentStore search failed: ${m}
+`)}}return o.slice(0,e)}var Fk,Zk=v(()=>{"use strict";Fk=process.env.DEBUG?.includes("context-mode")});function Hk(t){let{query:e,limit:r,store:n,sort:o="relevance",source:s,contentType:i,sessionDB:a,projectDir:c,configDir:u}=t,l=[],d=new Date().toISOString();try{let m=n.searchWithFallback(e,r,s,i);l.push(...m.map(f=>({title:f.title,content:f.content,source:f.source,origin:"current-session",timestamp:f.timestamp||d,rank:f.rank,matchLayer:f.matchLayer,highlighted:f.highlighted,contentType:f.contentType})))}catch(m){qh&&process.stderr.write(`[ctx] ContentStore search failed: ${m}
 `)}if(o==="timeline"){try{if(a){let m=a.searchEvents(e,r,c||"",s);l.push(...m.map(f=>({title:`[${f.category}] ${f.type}`,content:f.data,source:"prior-session",origin:"prior-session",timestamp:f.created_at})))}}catch(m){qh&&process.stderr.write(`[ctx] SessionDB search failed: ${m}
 `)}try{let m=Uk([e],r,c,u);l.push(...m)}catch(m){qh&&process.stderr.write(`[ctx] auto-memory search failed: ${m}
 `)}}for(let m of l)m.timestamp&&!m.timestamp.includes("T")&&(m.timestamp=m.timestamp.replace(" ","T")+"Z");return o==="timeline"&&l.sort((m,f)=>(m.timestamp||"").localeCompare(f.timestamp||"")),l.slice(0,r)}var qh,qk=v(()=>{"use strict";Zk();qh=process.env.DEBUG?.includes("context-mode")});function Kj(t,e){let r=t.split(".").map(Number),n=e.split(".").map(Number);for(let o=0;o<3;o++){if((r[o]??0)>(n[o]??0))return!0;if((r[o]??0)<(n[o]??0))return!1}return!1}function Jo(t){return t>=1024*1024?`${(t/1024/1024).toFixed(1)} MB`:t>=1024?`${(t/1024).toFixed(1)} KB`:`${Math.round(t)} B`}function Yj(t){let e=parseFloat(t);if(isNaN(e)||e<1)return"< 1 min";if(e<60)return`${Math.round(e)} min`;let r=Math.floor(e/60),n=Math.round(e%60);return n>0?`${r}h ${n}m`:`${r}h`}function Wk(t){return t>=1e6?`${(t/1e6).toFixed(1)}M`:t>=1e3?`${(t/1e3).toFixed(1)}K`:String(t)}function Bh(t,e,r=40){if(e<=0)return"\u2591".repeat(r);let n=Math.max(1,Math.round(t/e*r));return"\u2588".repeat(Math.min(n,r))+"\u2591".repeat(Math.max(0,r-n))}function Vk(t){if(t.total_events===0)return[];let e=[];e.push("");let r=t.session_count===1?"1 session":`${t.session_count} sessions`;e.push(`${Wk(t.total_events)} events remembered across ${r} \u2014 searchable after compact & restart`),e.push("");let n=t.by_category.length>0?t.by_category[0].count:1;for(let o of t.by_category)e.push(`  ${o.label.padEnd(18)} ${String(o.count).padStart(5)}   ${Bh(o.count,n,30)}`);return e}function Xc(t,e,r){let n=[],o=Yj(t.session.uptime_min),s=t.savings.kept_out+(t.cache?t.cache.bytes_saved:0),i=t.savings.total_bytes_returned,a=t.savings.total_calls,c=s+i,u=c>0?s/c*100:0,l=Math.round(s/4);if(s===0){n.push(`context-mode  ${o}  ${a} calls`),n.push(""),a===0?n.push("No tool calls yet. Use batch_execute or execute to start saving tokens."):n.push(`${Jo(i)} entered context  |  0 tokens saved`),n.push(...Vk(t.projectMemory)),n.push("");let p=e?`v${e}`:"context-mode";return n.push(p),e&&r&&r!=="unknown"&&Kj(r,e)&&n.push(`Update available: v${e} -> v${r}  |  ctx_upgrade`),n.join(`

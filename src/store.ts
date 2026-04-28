@@ -32,6 +32,7 @@ type SearchRow = {
   title: string;
   content: string;
   content_type: string;
+  timestamp: string | null;
   label: string;
   rank: number;
   highlighted: string;
@@ -559,6 +560,7 @@ export class ContentStore {
         chunks.title,
         chunks.content,
         chunks.content_type,
+        chunks.timestamp,
         sources.label,
         bm25(chunks, 5.0, 1.0) AS rank,
         highlight(chunks, 1, char(2), char(3)) AS highlighted
@@ -573,6 +575,7 @@ export class ContentStore {
         chunks.title,
         chunks.content,
         chunks.content_type,
+        chunks.timestamp,
         sources.label,
         bm25(chunks, 5.0, 1.0) AS rank,
         highlight(chunks, 1, char(2), char(3)) AS highlighted
@@ -587,6 +590,7 @@ export class ContentStore {
         chunks.title,
         chunks.content,
         chunks.content_type,
+        chunks.timestamp,
         sources.label,
         bm25(chunks, 5.0, 1.0) AS rank,
         highlight(chunks, 1, char(2), char(3)) AS highlighted
@@ -601,6 +605,7 @@ export class ContentStore {
         chunks_trigram.title,
         chunks_trigram.content,
         chunks_trigram.content_type,
+        chunks_trigram.timestamp,
         sources.label,
         bm25(chunks_trigram, 5.0, 1.0) AS rank,
         highlight(chunks_trigram, 1, char(2), char(3)) AS highlighted
@@ -615,6 +620,7 @@ export class ContentStore {
         chunks_trigram.title,
         chunks_trigram.content,
         chunks_trigram.content_type,
+        chunks_trigram.timestamp,
         sources.label,
         bm25(chunks_trigram, 5.0, 1.0) AS rank,
         highlight(chunks_trigram, 1, char(2), char(3)) AS highlighted
@@ -629,6 +635,7 @@ export class ContentStore {
         chunks_trigram.title,
         chunks_trigram.content,
         chunks_trigram.content_type,
+        chunks_trigram.timestamp,
         sources.label,
         bm25(chunks_trigram, 5.0, 1.0) AS rank,
         highlight(chunks_trigram, 1, char(2), char(3)) AS highlighted
@@ -645,6 +652,7 @@ export class ContentStore {
         chunks.title,
         chunks.content,
         chunks.content_type,
+        chunks.timestamp,
         sources.label,
         bm25(chunks, 5.0, 1.0) AS rank,
         highlight(chunks, 1, char(2), char(3)) AS highlighted
@@ -659,6 +667,7 @@ export class ContentStore {
         chunks.title,
         chunks.content,
         chunks.content_type,
+        chunks.timestamp,
         sources.label,
         bm25(chunks, 5.0, 1.0) AS rank,
         highlight(chunks, 1, char(2), char(3)) AS highlighted
@@ -673,6 +682,7 @@ export class ContentStore {
         chunks.title,
         chunks.content,
         chunks.content_type,
+        chunks.timestamp,
         sources.label,
         bm25(chunks, 5.0, 1.0) AS rank,
         highlight(chunks, 1, char(2), char(3)) AS highlighted
@@ -687,6 +697,7 @@ export class ContentStore {
         chunks_trigram.title,
         chunks_trigram.content,
         chunks_trigram.content_type,
+        chunks_trigram.timestamp,
         sources.label,
         bm25(chunks_trigram, 5.0, 1.0) AS rank,
         highlight(chunks_trigram, 1, char(2), char(3)) AS highlighted
@@ -701,6 +712,7 @@ export class ContentStore {
         chunks_trigram.title,
         chunks_trigram.content,
         chunks_trigram.content_type,
+        chunks_trigram.timestamp,
         sources.label,
         bm25(chunks_trigram, 5.0, 1.0) AS rank,
         highlight(chunks_trigram, 1, char(2), char(3)) AS highlighted
@@ -715,6 +727,7 @@ export class ContentStore {
         chunks_trigram.title,
         chunks_trigram.content,
         chunks_trigram.content_type,
+        chunks_trigram.timestamp,
         sources.label,
         bm25(chunks_trigram, 5.0, 1.0) AS rank,
         highlight(chunks_trigram, 1, char(2), char(3)) AS highlighted
@@ -886,10 +899,11 @@ export class ContentStore {
       const info = this.#stmtInsertSource.run(label, chunks.length, codeChunks, filePath ?? null, contentHash ?? null);
       const sourceId = Number(info.lastInsertRowid);
 
+      const now = new Date().toISOString();
       for (const chunk of chunks) {
         const ct = chunk.hasCode ? "code" : "prose";
-        this.#stmtInsertChunk.run(chunk.title, chunk.content, sourceId, ct, null, null, null, null);
-        this.#stmtInsertChunkTrigram.run(chunk.title, chunk.content, sourceId, ct, null, null, null, null);
+        this.#stmtInsertChunk.run(chunk.title, chunk.content, sourceId, ct, null, null, null, now);
+        this.#stmtInsertChunkTrigram.run(chunk.title, chunk.content, sourceId, ct, null, null, null, now);
       }
 
       return sourceId;
@@ -925,6 +939,7 @@ export class ContentStore {
       rank: r.rank,
       contentType: r.content_type as "code" | "prose",
       highlighted: r.highlighted,
+      timestamp: r.timestamp ?? undefined,
     }));
   }
 

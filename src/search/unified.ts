@@ -81,7 +81,7 @@ export function searchAllSources(opts: SearchAllSourcesOpts): UnifiedSearchResul
         content: r.content,
         source: r.source,
         origin: "current-session" as const,
-        timestamp: sessionStartTime,
+        timestamp: r.timestamp || sessionStartTime,
         rank: r.rank,
         matchLayer: r.matchLayer,
         highlighted: r.highlighted,
