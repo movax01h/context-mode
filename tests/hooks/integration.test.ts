@@ -39,7 +39,12 @@ const _guidanceDir = resolve(tmpdir(), `context-mode-guidance-${_guidanceSuffix}
 const _sessionGuidanceDir = resolve(tmpdir(), `context-mode-guidance-s-pid-${process.pid}`);
 
 // MCP readiness sentinel — subprocess hooks check process.ppid (= this test's pid)
-const mcpSentinel = resolve(tmpdir(), `context-mode-mcp-ready-${process.pid}`);
+// Use the same sentinel directory that isMCPReady() scans: /tmp on Unix, tmpdir() on Windows.
+// On macOS, tmpdir() returns /var/folders/... but isMCPReady() hardcodes /tmp — if we write
+// the sentinel to tmpdir(), CI environments (with no running MCP server in /tmp) will fail
+// because isMCPReady() returns false and all mcpRedirect() calls become passthrough (#347).
+const mcpSentinelDir = process.platform === "win32" ? tmpdir() : "/tmp";
+const mcpSentinel = resolve(mcpSentinelDir, `context-mode-mcp-ready-${process.pid}`);
 
 beforeEach(() => {
   try { rmSync(_guidanceDir, { recursive: true, force: true }); } catch {}

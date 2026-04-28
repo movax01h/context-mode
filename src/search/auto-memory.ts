@@ -93,8 +93,14 @@ export function searchAutoMemory(
 
         const queryLower = query.toLowerCase();
         // Split query into terms, match if any term is found
-        const terms = queryLower.split(/\s+/).filter(t => t.length >= 2);
-        const matched = terms.some(term => contentLower.includes(term));
+        const terms = queryLower.split(/\s+/).filter(t => t.length >= 3);
+        const matched = terms.some(term => {
+          try {
+            return new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, "i").test(content);
+          } catch {
+            return contentLower.includes(term); // fallback for invalid regex
+          }
+        });
 
         if (matched) {
           // Extract a relevant section around the first match
@@ -103,9 +109,13 @@ export function searchAutoMemory(
             return idx >= 0 && (best < 0 || idx < best) ? idx : best;
           }, -1);
 
-          const snippetStart = Math.max(0, firstTermIdx - 200);
-          const snippetEnd = Math.min(content.length, firstTermIdx + 500);
-          const snippet = content.slice(snippetStart, snippetEnd).trim();
+          let start = Math.max(0, firstTermIdx - 200);
+          let end = Math.min(content.length, firstTermIdx + 500);
+          const prevBlank = content.lastIndexOf("\n\n", start);
+          const nextBlank = content.indexOf("\n\n", end);
+          if (prevBlank >= 0) start = prevBlank + 2;
+          if (nextBlank >= 0) end = nextBlank;
+          const snippet = content.slice(start, end).trim();
 
           results.push({
             title: `[auto-memory] ${candidate.label}`,
